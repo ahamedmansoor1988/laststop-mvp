@@ -1,1 +1,16 @@
 .vercel
+
+# Android — never commit real secrets (Places/Routes API keys, Google Sign-In client ID)
+android-app/local.properties
+android-app/.gradle/
+android-app/.kotlin/
+android-app/build/
+android-app/app/build/
+android-app/*.iml
+android-app/.idea/
+android-app/captures/
+
+# Build outputs — distribute via zip/GitHub Release instead, not in git history
+*.apk
+
+.DS_Store
