@@ -83,7 +83,7 @@ class JourneyTrackingService : Service() {
         notificationManager = getSystemService(NotificationManager::class.java)
         notificationManager.createNotificationChannel(
             NotificationChannel(CHANNEL_ID, "Active journeys", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "Shows progress while exitchck tracks a journey"
+                description = "Shows progress while quiklook tracks a journey"
                 setShowBadge(false)
             }
         )

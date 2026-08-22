@@ -209,7 +209,15 @@ class MainActivity : ComponentActivity() {
         handleIncomingIntent(intent)
 
         setContent {
-            if (!onboardingComplete) {
+            var showSplash by remember { mutableStateOf(true) }
+            LaunchedEffect(Unit) {
+                delay(1_700)
+                showSplash = false
+            }
+
+            if (showSplash) {
+                SplashScreen()
+            } else if (!onboardingComplete) {
                 OnboardingFlow(
                     signedInUser = signedInUser,
                     onSignIn = ::signInWithGoogle,
@@ -742,7 +750,7 @@ private fun LastStopApp(
                     .padding(horizontal = 24.dp, vertical = 28.dp)
             ) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("EXITCHCK", color = Muted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text("QUIKLOOK", color = Muted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     if (!journeyActive) {
                         TextButton(onClick = { onChangeScreen(UiScreen.Settings) }) {
                             Text("Settings", color = Muted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
@@ -866,10 +874,10 @@ private fun IdleScreen(onStartNow: () -> Unit) {
     Text("Check before\nyou arrive.", color = Ink, fontSize = 42.sp, lineHeight = 45.sp, fontWeight = FontWeight.Black)
     Spacer(Modifier.height(24.dp))
     Column(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(24.dp)).padding(22.dp)) {
-        Text("EXITCHCK IS WATCHING", color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        Text("QUIKLOOK IS WATCHING", color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(10.dp))
         Text(
-            "No need to open the app. As soon as exitchck notices you're on the move, it will prompt you to set up this trip.",
+            "No need to open the app. As soon as quiklook notices you're on the move, it will prompt you to set up this trip.",
             color = Ink,
             fontSize = 16.sp
         )

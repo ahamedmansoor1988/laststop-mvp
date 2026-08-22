@@ -48,13 +48,13 @@ class PassiveDetectionService : Service() {
         notificationManager = getSystemService(NotificationManager::class.java)
         notificationManager.createNotificationChannel(
             NotificationChannel(WATCH_CHANNEL_ID, "Watching for travel", NotificationManager.IMPORTANCE_MIN).apply {
-                description = "Quiet background notice that exitchck is watching for your next trip"
+                description = "Quiet background notice that quiklook is watching for your next trip"
                 setShowBadge(false)
             }
         )
         notificationManager.createNotificationChannel(
             NotificationChannel(PROMPT_CHANNEL_ID, "Travel detected", NotificationManager.IMPORTANCE_HIGH).apply {
-                description = "Alerts when exitchck notices you're on the move"
+                description = "Alerts when quiklook notices you're on the move"
                 enableVibration(true)
             }
         )
@@ -177,7 +177,7 @@ class PassiveDetectionService : Service() {
             NotificationCompat.Builder(this, PROMPT_CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_dialog_alert)
                 .setContentTitle("Looks like you're traveling")
-                .setContentText("Tap to set up this trip in exitchck")
+                .setContentText("Tap to set up this trip in quiklook")
                 .setStyle(NotificationCompat.BigTextStyle().bigText(
                     "Tap to check your belongings and set a timer or destination for this trip."
                 ))
@@ -193,7 +193,7 @@ class PassiveDetectionService : Service() {
     private fun buildWatchNotification(): Notification =
         NotificationCompat.Builder(this, WATCH_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
-            .setContentTitle("exitchck is watching for your next trip")
+            .setContentTitle("quiklook is watching for your next trip")
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setPriority(NotificationCompat.PRIORITY_MIN)
