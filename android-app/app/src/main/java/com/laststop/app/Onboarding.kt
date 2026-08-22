@@ -13,6 +13,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -76,11 +79,22 @@ internal fun SplashScreen() {
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Image(
-                painter = painterResource(R.drawable.ic_quiklook_tile),
-                contentDescription = "QuikLook",
-                modifier = Modifier.width(184.dp)
-            )
+            // Badge geometry from the supplied asset: a 162 tile at 70 corner radius, filled by
+            // a radial running #540028 at 0.672/0.559 out to #FF69B2, with the same white inner
+            // glow the other cards use. The mark sits on top as flat white paths.
+            Box(
+                modifier = Modifier
+                    .size(162.dp)
+                    .clip(RoundedCornerShape(percent = 43))
+                    .badgeGradient(),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.ic_quiklook_badge_mark),
+                    contentDescription = "QuikLook",
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
             Spacer(Modifier.height(22.dp))
             Text(
                 "QuikLook",
@@ -90,6 +104,41 @@ internal fun SplashScreen() {
                 fontWeight = FontWeight.Bold
             )
         }
+    }
+}
+
+/** The badge fill: dark magenta core easing out to pink, washed at the edges by the same
+ * white inner shadow the design applies to every gradient surface. */
+private fun Modifier.badgeGradient(): Modifier = drawBehind {
+    val cx = size.width * 0.672f
+    val cy = size.height * 0.559f
+    val rx = size.width * 0.753f
+    val ry = size.height * 0.527f
+    withTransform({ scale(1f, ry / rx, pivot = Offset(cx, cy)) }) {
+        drawRect(
+            brush = Brush.radialGradient(
+                colors = listOf(Color(0xFF540028), Color(0xFFFF69B2)),
+                center = Offset(cx, cy),
+                radius = rx
+            ),
+            topLeft = Offset(cx - rx * 2f, cy - rx * 2f),
+            size = Size(rx * 4f, rx * 4f)
+        )
+    }
+    val gx = size.width * 0.5f
+    val gc = Offset(gx, size.height * 0.5f)
+    withTransform({ scale(1f, 1f, pivot = gc) }) {
+        drawRect(
+            brush = Brush.radialGradient(
+                0.00f to Color.White.copy(alpha = 0f),
+                0.38f to Color.White.copy(alpha = 0f),
+                1.00f to Color.White.copy(alpha = 0.5f),
+                center = gc,
+                radius = gx
+            ),
+            topLeft = Offset(gc.x - gx * 2f, gc.y - gx * 2f),
+            size = Size(gx * 4f, gx * 4f)
+        )
     }
 }
 

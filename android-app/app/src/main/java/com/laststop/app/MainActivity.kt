@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
 import android.annotation.SuppressLint
+import android.util.Log
 import android.location.LocationManager
 import android.net.Uri
 import android.os.Build
@@ -34,6 +35,8 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -187,7 +190,15 @@ class MainActivity : ComponentActivity() {
     private val destinationPicker = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        val data = result.data ?: return@registerForActivityResult
+        val data = result.data
+        Log.d("Places", "autocomplete returned code=${result.resultCode} hasData=${data != null}")
+        if (data == null) {
+            // Backing out is a normal cancel; anything else closing empty is a real failure and
+            // must say so rather than looking like a dead button.
+            destinationPickerError = if (result.resultCode == RESULT_CANCELED) null else
+                "Place search closed without a result. Check that Places API (New) is enabled for this API key."
+            return@registerForActivityResult
+        }
         if (result.resultCode == PlaceAutocompleteActivity.RESULT_OK) {
             val prediction = PlaceAutocomplete.getPredictionFromIntent(data)
             if (prediction == null) {
@@ -224,8 +235,10 @@ class MainActivity : ComponentActivity() {
                     destinationPickerError = error.message ?: "Google could not load that destination."
                 }
         } else if (result.resultCode != RESULT_CANCELED) {
-            destinationPickerError = PlaceAutocomplete.getResultStatusFromIntent(data)?.statusMessage
-                ?: "Google destination search failed."
+            val status = PlaceAutocomplete.getResultStatusFromIntent(data)
+            Log.d("Places", "autocomplete error status=$status")
+            destinationPickerError = status?.statusMessage
+                ?: "Place search failed. Check that Places API (New) is enabled for this API key."
         }
     }
 
@@ -288,6 +301,7 @@ class MainActivity : ComponentActivity() {
                 )
             } else {
             LastStopApp(
+                userProfile = userProfile,
                 locationState = locationState,
                 onPermissionResult = { granted ->
                     if (granted) startLocationUpdates() else locationState = LocationUiState.PermissionDenied
@@ -454,7 +468,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openDestinationPicker() {
-        if (!placesAvailable) return
+        if (!placesAvailable) {
+            destinationPickerError = "Place search is unavailable — no Places API key is configured in this build."
+            return
+        }
         pickingHomeForOnboarding = false
         destinationPickerError = null
         destinationPicker.launch(PlaceAutocomplete.createIntent(this) {
@@ -463,7 +480,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openHomeLocationPicker() {
-        if (!placesAvailable) return
+        if (!placesAvailable) {
+            destinationPickerError = "Place search is unavailable — no Places API key is configured in this build."
+            return
+        }
         pickingHomeForOnboarding = true
         destinationPickerError = null
         destinationPicker.launch(PlaceAutocomplete.createIntent(this) {
@@ -730,6 +750,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun LastStopApp(
+    userProfile: UserProfile,
     locationState: LocationUiState,
     onPermissionResult: (Boolean) -> Unit,
     onOpenSettings: () -> Unit,
@@ -923,6 +944,7 @@ private fun LastStopApp(
                     )
                     uiScreen == UiScreen.Settings -> SettingsScreen(
                         signedInUser = signedInUser,
+                        userProfile = userProfile,
                         onSignIn = onSignIn,
                         onSignOut = onSignOut,
                         signInError = signInError,
@@ -1010,9 +1032,15 @@ private fun DashboardChip(label: String, onClick: () -> Unit, selected: Boolean 
     }
 }
 
+/**
+ * Settings, built to the supplied screen. Geometry is the source's, converted from its 412-wide
+ * canvas: cards 338.5 wide at 19.25 radius with a #E6E5DE hairline, field rows 53 tall at 11.5,
+ * and 25.5-tall action pills — red-outlined for sign out, ink-outlined otherwise.
+ */
 @Composable
 private fun SettingsScreen(
     signedInUser: SignedInUser?,
+    userProfile: UserProfile,
     onSignIn: () -> Unit,
     onSignOut: () -> Unit,
     signInError: String?,
@@ -1028,96 +1056,199 @@ private fun SettingsScreen(
     onRequestIgnoreBatteryOptimizations: () -> Unit,
     onBack: () -> Unit
 ) {
-    Text("Settings", color = Ink, fontSize = 38.sp, fontWeight = FontWeight.Black)
-    Spacer(Modifier.height(20.dp))
+    Text("Settings", color = Ink, fontFamily = TitleFontFamily, fontSize = 34.sp, fontWeight = FontWeight.Bold)
 
-    Column(modifier = Modifier.fillMaxWidth().background(Card, RoundedCornerShape(24.dp)).padding(20.dp)) {
-        Text("ACCOUNT", color = Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(10.dp))
-        if (signedInUser != null) {
-            Text(signedInUser.displayName, color = Ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Text(signedInUser.email, color = Muted, fontSize = 13.sp)
-            Spacer(Modifier.height(12.dp))
-            TextButton(onClick = onSignOut) { Text("Sign out", color = Color(0xFFFF3964), fontWeight = FontWeight.Bold) }
-        } else {
-            Text("Not signed in", color = Ink, fontSize = 16.sp)
-            signInError?.let {
-                Spacer(Modifier.height(6.dp))
-                Text(it, color = Color(0xFFFF3964), fontSize = 13.sp)
+    Spacer(Modifier.height(30.dp))
+    SettingsLabel("PROFILE ACCOUNT")
+    Spacer(Modifier.height(14.dp))
+
+    // Profile card — avatar, name, and the red-outlined sign-out pill.
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(81.dp)
+            .border(1.dp, QuikLook.Border, RoundedCornerShape(17.dp))
+            .background(Card, RoundedCornerShape(17.dp))
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(contentAlignment = Alignment.BottomEnd) {
+            Box(
+                modifier = Modifier
+                    .size(53.dp)
+                    .clip(CircleShape)
+                    .background(Accent)
+                    .border(1.dp, Ink, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(painterResource(R.drawable.ic_user), null, tint = Ink, modifier = Modifier.size(24.dp))
             }
-            Spacer(Modifier.height(12.dp))
-            Button(
-                onClick = onSignIn,
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                shape = RoundedCornerShape(25.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = DeepInk)
-            ) { Text("Sign in with Google", fontWeight = FontWeight.Bold) }
+            Box(
+                modifier = Modifier.size(22.dp).clip(CircleShape).background(Ink),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(painterResource(R.drawable.ic_add), null, tint = Color.White, modifier = Modifier.size(11.dp))
+            }
+        }
+        Spacer(Modifier.width(14.dp))
+        Text(
+            signedInUser?.displayName ?: userProfile.name.ifBlank { "Not signed in" },
+            color = Ink, fontFamily = BodyFontFamily, fontSize = 16.sp,
+            modifier = Modifier.weight(1f), maxLines = 1
+        )
+        if (signedInUser != null) {
+            OutlinePill("Sign out", QuikLook.Danger, onSignOut)
+        } else {
+            OutlinePill("Sign in", Ink, onSignIn)
         }
     }
-    Spacer(Modifier.height(16.dp))
-
-    Column(modifier = Modifier.fillMaxWidth().background(Card, RoundedCornerShape(24.dp)).padding(20.dp)) {
-        Text("HOME LOCATION", color = Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(10.dp))
-        Text(homeDestination?.name ?: "Not set", color = Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        destinationPickerError?.let {
-            Spacer(Modifier.height(6.dp))
-            Text(it, color = Color(0xFFFF3964), fontSize = 13.sp)
-        }
-        Spacer(Modifier.height(12.dp))
-        Button(
-            onClick = onOpenHomeLocationPicker,
-            enabled = placesAvailable,
-            modifier = Modifier.fillMaxWidth().height(50.dp),
-            shape = RoundedCornerShape(25.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = DeepInk)
-        ) { Text(if (homeDestination != null) "Change home address" else "Set home address", fontWeight = FontWeight.Bold) }
-    }
-    Spacer(Modifier.height(16.dp))
-
-    Column(modifier = Modifier.fillMaxWidth().background(Card, RoundedCornerShape(24.dp)).padding(20.dp)) {
-        Text("PERMISSIONS", color = Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(10.dp))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Location access", color = Ink, fontSize = 15.sp)
-            Text(
-                if (hasLocationPermission) "Granted" else "Not granted",
-                color = if (hasLocationPermission) Color(0xFF8BEF95) else Color(0xFFFF3964),
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.sp
-            )
-        }
-        if (!hasLocationPermission) {
-            Spacer(Modifier.height(10.dp))
-            Button(
-                onClick = onOpenAppSettings,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = DeepInk)
-            ) { Text("Open app settings", fontWeight = FontWeight.Bold) }
-        }
-        if (!systemLocationEnabled) {
-            Spacer(Modifier.height(10.dp))
-            Button(
-                onClick = onOpenLocationSettings,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = DeepInk)
-            ) { Text("Turn on location", fontWeight = FontWeight.Bold) }
-        }
-        if (!batteryOptimizationIgnored) {
-            Spacer(Modifier.height(10.dp))
-            Button(
-                onClick = onRequestIgnoreBatteryOptimizations,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = DeepInk)
-            ) { Text("Allow background activity", fontWeight = FontWeight.Bold) }
-        }
+    signInError?.let {
+        Spacer(Modifier.height(8.dp))
+        Text(it, color = QuikLook.Danger, fontFamily = BodyFontFamily, fontSize = 13.sp)
     }
 
-    Spacer(Modifier.height(16.dp))
-    TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Done", color = Muted, fontWeight = FontWeight.Bold) }
+    Spacer(Modifier.height(8.dp))
+    ProfileField(R.drawable.ic_calendar, userProfile.age.ifBlank { "Age not set" }, userProfile.age.isBlank())
+    Spacer(Modifier.height(8.dp))
+    ProfileField(R.drawable.ic_profile_2user, userProfile.gender.ifBlank { "Gender not set" }, userProfile.gender.isBlank())
+    Spacer(Modifier.height(8.dp))
+    ProfileField(R.drawable.ic_call, userProfile.phone.ifBlank { "Phone not set" }, userProfile.phone.isBlank())
+
+    Spacer(Modifier.height(52.dp))
+    SettingsLabel("HOME LOCATION")
+    Spacer(Modifier.height(14.dp))
+    StatusCard(
+        icon = R.drawable.ic_location_add,
+        title = "Home Radius",
+        subtitle = homeDestination?.name ?: "Not set",
+        actionLabel = if (homeDestination != null) "Change" else "Set",
+        actionColor = Ink,
+        enabled = placesAvailable,
+        onAction = onOpenHomeLocationPicker
+    )
+    destinationPickerError?.let {
+        Spacer(Modifier.height(8.dp))
+        Text(it, color = QuikLook.Danger, fontFamily = BodyFontFamily, fontSize = 13.sp)
+    }
+
+    Spacer(Modifier.height(52.dp))
+    SettingsLabel("PERMISSIONS STATUS")
+    Spacer(Modifier.height(14.dp))
+    StatusCard(
+        icon = R.drawable.ic_location_add,
+        title = "Location access",
+        subtitle = null,
+        actionLabel = if (hasLocationPermission) "Allowed" else "Allow",
+        actionColor = Ink,
+        enabled = true,
+        onAction = { if (!hasLocationPermission) onOpenAppSettings() }
+    )
+    if (!systemLocationEnabled) {
+        Spacer(Modifier.height(8.dp))
+        StatusCard(
+            icon = R.drawable.ic_location_add,
+            title = "Location services",
+            subtitle = "Turned off on this phone",
+            actionLabel = "Turn on",
+            actionColor = Ink,
+            enabled = true,
+            onAction = onOpenLocationSettings
+        )
+    }
+    if (!batteryOptimizationIgnored) {
+        Spacer(Modifier.height(8.dp))
+        StatusCard(
+            icon = R.drawable.ic_battery_charging,
+            title = "Background activity",
+            subtitle = "Restricted — tracking may stop",
+            actionLabel = "Allow",
+            actionColor = Ink,
+            enabled = true,
+            onAction = onRequestIgnoreBatteryOptimizations
+        )
+    }
+
+    Spacer(Modifier.height(34.dp))
+    TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
+        Text("Back", color = Muted, fontFamily = BodyFontFamily, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun SettingsLabel(text: String) =
+    Text(text, color = Muted, fontFamily = BodyFontFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.8.sp)
+
+/** 25.5-tall outlined pill, red for destructive actions and ink otherwise. */
+@Composable
+private fun OutlinePill(label: String, colour: Color, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .height(28.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .border(1.dp, colour, RoundedCornerShape(14.dp))
+            .background(Card)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 13.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, color = colour, fontFamily = BodyFontFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+/** A 53-tall white field row showing one stored profile value. */
+@Composable
+private fun ProfileField(icon: Int, value: String, placeholder: Boolean) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(46.dp)
+            .border(1.dp, QuikLook.Border, RoundedCornerShape(10.dp))
+            .background(Card, RoundedCornerShape(10.dp))
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(painterResource(icon), null, tint = Ink, modifier = Modifier.size(19.dp))
+        Spacer(Modifier.width(12.dp))
+        Text(value, color = if (placeholder) Muted else Ink, fontFamily = BodyFontFamily, fontSize = 15.sp)
+    }
+}
+
+/** The home-location and permission cards: round icon well, label, and an outlined action. */
+@Composable
+private fun StatusCard(
+    icon: Int,
+    title: String,
+    subtitle: String?,
+    actionLabel: String,
+    actionColor: Color,
+    enabled: Boolean,
+    onAction: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(74.dp)
+            .border(1.dp, QuikLook.Border, RoundedCornerShape(17.dp))
+            .background(Card, RoundedCornerShape(17.dp))
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier.size(35.dp).clip(CircleShape).background(QuikLook.Surface),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(painterResource(icon), null, tint = Ink, modifier = Modifier.size(18.dp))
+        }
+        Spacer(Modifier.width(13.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, color = Ink, fontFamily = TitleFontFamily, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            if (subtitle != null) {
+                Text(subtitle, color = Muted, fontFamily = BodyFontFamily, fontSize = 13.sp, maxLines = 1)
+            }
+        }
+        Spacer(Modifier.width(8.dp))
+        if (enabled) OutlinePill(actionLabel, actionColor, onAction)
+    }
 }
 
 @Composable
@@ -1192,6 +1323,29 @@ private fun JourneyScreen(
                 )
             }
             AddPlaceChip(enabled = placesAvailable, onClick = onOpenDestinationPicker)
+        }
+
+        val recents = recentDestinations.filter { recent ->
+            savedPlaces.none { it.destination.name == recent.name }
+        }
+        if (recents.isNotEmpty()) {
+            Spacer(Modifier.height(20.dp))
+            SectionLabel("Recent")
+            Spacer(Modifier.height(12.dp))
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(9.dp),
+                verticalArrangement = Arrangement.spacedBy(9.dp)
+            ) {
+                recents.take(6).forEach { recent ->
+                    PlaceChip(
+                        label = recent.name,
+                        iconRes = R.drawable.ic_location_add,
+                        selected = pickedDestination?.name == recent.name,
+                        onClick = { onPickDestination(recent) }
+                    )
+                }
+            }
         }
 
         Spacer(Modifier.height(26.dp))
@@ -1903,7 +2057,11 @@ private fun AlertProgress(stage: Int) {
     }
 }
 
-/** Design 9 — the exit checklist, on the green hero card. */
+/**
+ * Design 9. From the source: the card is 348 by 656 at 60 radius, the rows are 199 wide — not
+ * full width — centred in it, 49 tall and fully rounded, and each tick is a 22.5 lime circle
+ * pinned to the row's right edge rather than sitting against the label.
+ */
 @Composable
 private fun ExitChecklist(
     items: List<String>,
@@ -1914,56 +2072,82 @@ private fun ExitChecklist(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(28.dp))
-            .heroGradient(QuikLook.GreenDark, QuikLook.GreenLight, 0.5f, 1.0f, 1.0f)
-            .padding(22.dp)
+            .clip(RoundedCornerShape(percent = 17))
+            .heroGradient(QuikLook.GreenDark, QuikLook.GreenLight, 0.5f, 1.08f, 0.574f)
+            .padding(top = 69.dp, bottom = 62.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            "Check your things\nbefore leaving",
+            "Check your\nthings before\nleaving",
             color = Color.White,
             fontFamily = TitleFontFamily,
-            fontSize = 26.sp,
-            lineHeight = 31.sp,
+            fontSize = 37.sp,
+            lineHeight = 43.sp,
             fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
+            textAlign = TextAlign.Center
         )
-        Spacer(Modifier.height(22.dp))
+        Spacer(Modifier.height(31.dp))
         items.forEach { item ->
-            ItemChip(
-                item,
-                Modifier
-                    .fillMaxWidth()
-                    .clickable { onToggle(item) }
-            ) {
-                Box(
-                    Modifier
-                        .size(22.dp)
-                        .background(if (item in checkedItems) Accent else Color.White.copy(alpha = 0.18f), RoundedCornerShape(50)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (item in checkedItems) {
-                        Icon(painterResource(R.drawable.ic_quiklook_mark), null, tint = Ink, modifier = Modifier.size(14.dp))
-                    }
-                }
-            }
-            Spacer(Modifier.height(10.dp))
+            ChecklistRow(item, item in checkedItems) { onToggle(item) }
+            Spacer(Modifier.height(8.dp))
         }
     }
-    Spacer(Modifier.height(20.dp))
-    Button(
-        onClick = onDone,
-        enabled = items.isEmpty() || checkedItems.containsAll(items),
-        modifier = Modifier.fillMaxWidth().height(60.dp),
-        shape = RoundedCornerShape(30.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Ink,
-            contentColor = Accent,
-            disabledContainerColor = QuikLook.Surface,
-            disabledContentColor = Muted
-        )
-    ) { Text("I took everything", fontFamily = TitleFontFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+    Spacer(Modifier.height(24.dp))
+    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Button(
+            onClick = onDone,
+            enabled = items.isEmpty() || checkedItems.containsAll(items),
+            modifier = Modifier.fillMaxWidth(0.84f).height(70.dp),
+            shape = RoundedCornerShape(35.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Ink,
+                contentColor = Accent,
+                disabledContainerColor = Ink,
+                disabledContentColor = Accent.copy(alpha = 0.38f)
+            )
+        ) { Text("I took everything", fontFamily = TitleFontFamily, fontSize = 17.sp, fontWeight = FontWeight.Bold) }
+    }
 }
+
+/** 199-wide pill: icon, label, then the tick pushed to the right edge. */
+@Composable
+private fun ChecklistRow(item: String, checked: Boolean, onToggle: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth(0.572f)
+            .height(43.dp)
+            .clip(RoundedCornerShape(50))
+            .background(Ink)
+            .clickable(onClick = onToggle)
+            .padding(start = 14.dp, end = 11.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(painterResource(belongingIcon(item)), null, tint = Accent, modifier = Modifier.size(21.dp))
+        Spacer(Modifier.width(9.dp))
+        Text(
+            item,
+            color = Accent,
+            fontFamily = BodyFontFamily,
+            fontSize = 14.sp,
+            maxLines = 1,
+            modifier = Modifier.weight(1f)
+        )
+        Spacer(Modifier.width(8.dp))
+        Box(
+            modifier = Modifier
+                .size(20.dp)
+                .clip(CircleShape)
+                .background(if (checked) Accent else Color.Transparent)
+                .border(1.5.dp, if (checked) Accent else Color.White.copy(alpha = 0.38f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            if (checked) {
+                Icon(painterResource(R.drawable.ic_quiklook_mark), null, tint = Ink, modifier = Modifier.size(12.dp))
+            }
+        }
+    }
+}
+
 
 private fun formatDistance(meters: Float): String = if (meters >= 1_000f) {
     String.format(Locale.US, "%.1f km", meters / 1_000f)
@@ -2205,6 +2389,7 @@ private fun LastStopPreview() {
         onRequestIgnoreBatteryOptimizations = {},
         onStartUpdates = {},
         onStopUpdates = {},
+        userProfile = UserProfile(),
         uiScreen = UiScreen.Idle,
         onChangeScreen = {},
         recentDestinations = emptyList(),

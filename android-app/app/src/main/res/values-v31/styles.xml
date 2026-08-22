@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Android draws its own splash from the theme before any Compose runs. Left alone it uses
+        the launcher icon, which is the lime tile - so the first thing on screen did not match
+        the pink loading badge in the designs. Point it at the badge and paint the window black
+        so it hands over to the Compose splash without a visible change of ground.
+    -->
+    <style name="Theme.QuikLook" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:windowSplashScreenBackground">#000000</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_splash_badge</item>
+    </style>
+</resources>
