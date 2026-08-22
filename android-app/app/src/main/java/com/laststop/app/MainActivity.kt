@@ -95,12 +95,13 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private val Canvas = Color.Black
-private val Ink = Color.White
-private val Accent = Color(0xFFDBFF45)
-private val Muted = Color(0xFFB5C0C6)
-private val Card = Color(0xFF040B19)
-private val DeepInk = Color.Black
+// The app runs on the cream ground from the designs; only onboarding is black.
+private val Canvas = QuikLook.Cream
+private val Ink = QuikLook.Ink
+private val Accent = QuikLook.Lime
+private val Muted = QuikLook.Muted
+private val Card = QuikLook.White
+private val DeepInk = QuikLook.Ink
 
 @Composable
 private fun quikLookFieldColors() = OutlinedTextFieldDefaults.colors(
@@ -805,11 +806,7 @@ private fun LastStopApp(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(Color(0xFF040B19), Color.Black, Color(0xFF540028))
-                        )
-                    )
+                    .background(Canvas)
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 24.dp, vertical = 28.dp)
             ) {
@@ -829,10 +826,10 @@ private fun LastStopApp(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color(0xFF680F0F), RoundedCornerShape(24.dp))
+                            .background(Color(0xFFFDE7EB), RoundedCornerShape(24.dp))
                             .padding(18.dp)
                     ) {
-                        Text("LOCATION IS OFF", color = Color(0xFFFF3964), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("LOCATION IS OFF", color = Color(0xFFC20031), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(5.dp))
                         Text("Turn on Location so QuikLook can notice when you're traveling.", color = Ink, fontSize = 15.sp)
                         Spacer(Modifier.height(10.dp))
@@ -848,10 +845,10 @@ private fun LastStopApp(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color(0xFF27422A), RoundedCornerShape(24.dp))
+                            .background(Color(0xFFE9F6EC), RoundedCornerShape(24.dp))
                             .padding(18.dp)
                     ) {
-                        Text("BATTERY OPTIMIZATION IS ON", color = Color(0xFF8BEF95), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("BATTERY OPTIMIZATION IS ON", color = Color(0xFF1F7F45), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(5.dp))
                         Text(
                             "Your phone may stop QuikLook's background watcher to save power. Allow it to run unrestricted so travel detection keeps working.",
@@ -943,7 +940,7 @@ private fun IdleScreen(onStartNow: () -> Unit) {
             .background(Card, RoundedCornerShape(24.dp))
             .padding(18.dp)
     ) {
-        Text("Are you traveling?", color = Color.White, fontFamily = TitleFontFamily, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Text("Are you traveling?", color = Ink, fontFamily = TitleFontFamily, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(5.dp))
         Text("Set active reminders for your next destination.", color = Color(0xFFB5C0C6), fontFamily = BodyFontFamily, fontSize = 13.sp)
         Spacer(Modifier.height(16.dp))
@@ -1380,7 +1377,7 @@ private fun StepperGlyph(symbol: String, enabled: Boolean, onClick: () -> Unit) 
         colors = ButtonDefaults.buttonColors(
             containerColor = Accent,
             contentColor = DeepInk,
-            disabledContainerColor = Color(0xFF040B19),
+            disabledContainerColor = QuikLook.Surface,
             disabledContentColor = Muted
         )
     ) { Text(symbol, fontSize = 16.sp, fontWeight = FontWeight.Black) }
