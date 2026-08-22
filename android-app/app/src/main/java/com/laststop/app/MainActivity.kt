@@ -1442,13 +1442,13 @@ private fun CarrySelection(
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 24.dp)) {
             Text(
                 "Are you\ntraveling?", color = Color.White, fontFamily = TitleFontFamily,
-                fontSize = 30.sp, lineHeight = 35.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center
+                fontSize = 37.sp, lineHeight = 43.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(10.dp))
             Text(
                 "Set active reminders for your next destination.",
                 color = Color.White.copy(alpha = 0.92f), fontFamily = BodyFontFamily,
-                fontSize = 13.sp, lineHeight = 18.sp, textAlign = TextAlign.Center
+                fontSize = 15.sp, lineHeight = 21.sp, textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(18.dp))
             // Both pills live inside the card, 32 tall at 16 radius.
@@ -1633,15 +1633,39 @@ private fun Modifier.heroGradient(
     val cy = size.height * centerYFraction
     val rx = size.width * radiusXFraction
     val ry = size.height * radiusYFraction
+
+    // Base ellipse: dark at the centre out to the pale stop.
     withTransform({ scale(1f, ry / rx, pivot = Offset(cx, cy)) }) {
-        drawCircle(
+        drawRect(
             brush = Brush.radialGradient(
                 colors = listOf(dark, light),
                 center = Offset(cx, cy),
                 radius = rx
             ),
-            radius = rx,
-            center = Offset(cx, cy)
+            topLeft = Offset(cx - rx * 2f, cy - rx * 2f),
+            size = Size(rx * 4f, rx * 4f)
+        )
+    }
+
+    // The source card carries an inner shadow whose feColorMatrix forces the shadow colour to
+    // pure white, so the inside edges are washed toward white rather than darkened. Without it
+    // the card reads far too saturated: the real edge is #C2F1C7, lighter than the #8BEF95 stop.
+    val gx = size.width * 0.5f
+    val gy = size.height * 0.5f
+    val gc = Offset(cx, gy)
+    withTransform({ scale(1f, gy / gx, pivot = gc) }) {
+        drawRect(
+            // The source erodes the alpha before blurring, so the glow starts part-way out
+            // and the centre stays the pure gradient colour.
+            brush = Brush.radialGradient(
+                0.00f to Color.White.copy(alpha = 0f),
+                0.38f to Color.White.copy(alpha = 0f),
+                1.00f to Color.White.copy(alpha = 0.5f),
+                center = gc,
+                radius = gx
+            ),
+            topLeft = Offset(cx - gx * 2f, gy - gx * 2f),
+            size = Size(gx * 4f, gx * 4f)
         )
     }
 }
