@@ -133,7 +133,12 @@ class JourneyTrackingService : Service() {
         try {
             startForeground(NOTIFICATION_ID, buildNotification(statusText()))
         } catch (e: SecurityException) {
+            // Android refuses to start a location-type foreground service from the background
+            // while only while-in-use location permission is held — this is what happens when
+            // BootReceiver tries to resume a journey after a reboot. Rather than dying silently
+            // and leaving a long trip untracked, tell the user how to get tracking back.
             Log.d(TAG, "startForeground rejected (not in an eligible state): ${e.message}")
+            notifyTrackingNeedsResume()
             stopSelf()
             return START_NOT_STICKY
         }
@@ -485,6 +490,28 @@ class JourneyTrackingService : Service() {
         notificationManager.notify(RAPID_ALERT_NOTIFICATION_ID, builder.build())
     }
 
+    /** Shown when tracking could not be (re)started without the user opening the app — most
+     * often after a device reboot mid-journey. Tapping it opens QuikLook, which restarts
+     * tracking from onResume(), where the app is always in an eligible state. */
+    private fun notifyTrackingNeedsResume() {
+        val openApp = PendingIntent.getActivity(
+            this,
+            2,
+            Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        notificationManager.notify(
+            RESUME_NEEDED_NOTIFICATION_ID,
+            NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+                .setContentTitle("Tap to resume tracking")
+                .setContentText("QuikLook stopped tracking your trip. Open the app to pick it back up.")
+                .setContentIntent(openApp)
+                .setAutoCancel(true)
+                .build()
+        )
+    }
+
     private fun buildNotification(status: String): Notification {
         val openApp = PendingIntent.getActivity(
             this,
@@ -549,6 +576,7 @@ class JourneyTrackingService : Service() {
         private const val ALERT_CHANNEL_ID = "journey_alerts_alarm"
         private const val NOTIFICATION_ID = 1001
         private const val RAPID_ALERT_NOTIFICATION_ID = 1002
+        private const val RESUME_NEEDED_NOTIFICATION_ID = 1003
         private const val FAST_SPEED_METERS_PER_SECOND = 8f
         private const val NEAR_DESTINATION_METERS = 1_000f
         private const val ARRIVAL_RADIUS_METERS = 60f

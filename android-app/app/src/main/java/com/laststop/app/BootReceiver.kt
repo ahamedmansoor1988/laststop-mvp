@@ -13,12 +13,20 @@ import androidx.core.content.ContextCompat
  * stops all tracking. This matters most for long journeys (a multi-hour train/bus ride), where
  * the odds of a reboot happening mid-trip are far higher than for a five-minute walk.
  *
- * Deliberately does NOT act on MY_PACKAGE_REPLACED (app update/reinstall): Android only grants
- * the "eligible state" exemption needed to start a location-type foreground service from the
- * background for BOOT_COMPLETED, not for MY_PACKAGE_REPLACED when only while-in-use location
- * permission is held — attempting it there throws SecurityException. MainActivity.onResume()
- * already covers the update/reinstall case reliably, since the app is always reopened by the
- * user (or the system) shortly after.
+ * Note that this is best-effort, not guaranteed. A location-type foreground service cannot be
+ * started from the background while the app holds only while-in-use location permission — and
+ * that restriction is NOT waived by the BOOT_COMPLETED exemption, which only lifts the general
+ * background-start rule. So these calls may well be rejected with SecurityException; the
+ * services catch it, and JourneyTrackingService posts a "tap to resume tracking" notification
+ * so a reboot mid-trip is visible rather than silent.
+ *
+ * Granting ACCESS_BACKGROUND_LOCATION would make the restart reliable, but that permission
+ * triggers Google Play's sensitive-permission review (declaration form plus demo video) for
+ * the sake of this one path, so we deliberately don't request it. MainActivity.onResume()
+ * restarts tracking whenever the user next opens the app, which is always eligible.
+ *
+ * Deliberately does NOT act on MY_PACKAGE_REPLACED (app update/reinstall) either, for the same
+ * reason — MainActivity.onResume() covers that case, since the app is reopened shortly after.
  */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
