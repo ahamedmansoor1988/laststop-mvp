@@ -32,6 +32,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -155,8 +157,9 @@ private sealed interface ActiveTarget {
 }
 
 private val DEFAULT_BELONGINGS = listOf(
-    "Bag", "Phone", "Wallet", "Laptop", "Keys", "Earbuds",
-    "Charger", "Power bank", "Water bottle", "Umbrella", "Sunglasses", "Medicines"
+    "Bag", "Phone", "Wallet", "Kids", "Keys", "Sunglasses",
+    "Earbuds", "Charger", "Passport", "iPad", "Suitcase", "Cabin bag",
+    "Boarding pass", "Books", "Laptop", "Medicine", "Watch"
 )
 
 class MainActivity : ComponentActivity() {
@@ -1427,12 +1430,13 @@ private fun CarrySelection(
     var adding by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
 
+    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
     Box(
         modifier = Modifier
-            .fillMaxWidth(348f / 412f)
+            .fillMaxWidth()
             .aspectRatio(348f / 300f)
             .clip(RoundedCornerShape(percent = 17))
-            .background(Brush.radialGradient(listOf(QuikLook.GreenLight, QuikLook.GreenDark))),
+            .heroGradient(QuikLook.GreenDark, QuikLook.GreenLight, 0.454f, 1.081f, 0.574f),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 24.dp)) {
@@ -1453,6 +1457,7 @@ private fun CarrySelection(
                 PromptPill("Not now", filled = false, onClick = { onDismiss?.invoke() })
             }
         }
+    }
     }
 
     Spacer(Modifier.height(26.dp))
@@ -1491,14 +1496,16 @@ private fun CarrySelection(
     }
 
     Spacer(Modifier.height(30.dp))
+    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
     Button(
         onClick = onContinue,
-        modifier = Modifier.fillMaxWidth(300f / 412f).height(70.dp),
+        modifier = Modifier.fillMaxWidth(0.84f).height(70.dp),
         shape = RoundedCornerShape(35.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = Ink, contentColor = Color.White
         )
     ) { Text("Continue", fontFamily = TitleFontFamily, fontSize = 17.sp, fontWeight = FontWeight.Bold) }
+    }
 }
 
 @Composable
@@ -1606,6 +1613,37 @@ private fun ChoiceButton(label: String, selected: Boolean, onClick: () -> Unit, 
             contentColor = if (selected) DeepInk else Ink
         )
     ) { Text(label, fontWeight = FontWeight.Bold) }
+}
+
+/**
+ * The hero gradient from the designs: dark at the centre easing out to pale at the edges. The
+ * source gradients are ellipses, not circles — design 8 runs 376 wide by 172 tall — so a plain
+ * radial brush cannot express them. This scales the canvas about the gradient centre and draws
+ * a circle into it, which yields the ellipse. Values are fractions of the drawn size, taken
+ * from each screen's gradientTransform.
+ */
+private fun Modifier.heroGradient(
+    dark: Color,
+    light: Color,
+    centerYFraction: Float,
+    radiusXFraction: Float,
+    radiusYFraction: Float
+): Modifier = drawBehind {
+    val cx = size.width * 0.5f
+    val cy = size.height * centerYFraction
+    val rx = size.width * radiusXFraction
+    val ry = size.height * radiusYFraction
+    withTransform({ scale(1f, ry / rx, pivot = Offset(cx, cy)) }) {
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(dark, light),
+                center = Offset(cx, cy),
+                radius = rx
+            ),
+            radius = rx,
+            center = Offset(cx, cy)
+        )
+    }
 }
 
 /**
@@ -1852,10 +1890,8 @@ private fun ExitChecklist(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                Brush.radialGradient(listOf(QuikLook.GreenLight, QuikLook.GreenDark)),
-                RoundedCornerShape(28.dp)
-            )
+            .clip(RoundedCornerShape(28.dp))
+            .heroGradient(QuikLook.GreenDark, QuikLook.GreenLight, 0.5f, 1.0f, 1.0f)
             .padding(22.dp)
     ) {
         Text(
