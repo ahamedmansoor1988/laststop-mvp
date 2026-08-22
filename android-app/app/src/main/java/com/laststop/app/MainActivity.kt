@@ -25,6 +25,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -1275,23 +1280,8 @@ private fun JourneyScreen(
             }
         }
         Spacer(Modifier.height(24.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1.05f)
-                .clip(RoundedCornerShape(26.dp))
-                .background(Brush.radialGradient(listOf(QuikLook.BlueLight, Color(0xFF0B3E8C)))),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                String.format(Locale.US, "%02d : %02d : %02d", minutes / 60, minutes % 60, 0),
-                color = Color.White,
-                fontFamily = TitleFontFamily,
-                fontSize = 30.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-        Spacer(Modifier.height(12.dp))
+        TimerFace(totalSeconds = minutes * 60L, remainingSeconds = minutes * 60L)
+        Spacer(Modifier.height(14.dp))
         Text(
             "Tap a quick preset above to set your countdown",
             color = Muted,
@@ -1316,6 +1306,55 @@ private fun JourneyScreen(
     Spacer(Modifier.height(10.dp))
     TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
         Text("Cancel", color = Muted, fontFamily = BodyFontFamily)
+    }
+}
+
+/**
+ * The countdown face from design 5: a squircle carrying a radial navy-to-blue fill and a white
+ * progress ring. Proportions are taken from the source — ring radius 130 and stroke 11 on a 328
+ * card — so it scales correctly on any screen width.
+ */
+@Composable
+private fun TimerFace(totalSeconds: Long, remainingSeconds: Long, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(percent = 18))
+            .background(Brush.radialGradient(listOf(Color(0xFF072766), Color(0xFF2B8CFF)))),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val stroke = size.width * (11f / 328f)
+            val radius = size.width * (130f / 328f)
+            val topLeft = Offset(center.x - radius, center.y - radius)
+            val arcSize = Size(radius * 2f, radius * 2f)
+            drawArc(
+                color = Color.White.copy(alpha = 0.3f),
+                startAngle = 0f, sweepAngle = 360f, useCenter = false,
+                topLeft = topLeft, size = arcSize,
+                style = Stroke(width = stroke, cap = StrokeCap.Round)
+            )
+            val fraction = if (totalSeconds > 0L) {
+                (remainingSeconds.toFloat() / totalSeconds.toFloat()).coerceIn(0f, 1f)
+            } else 1f
+            drawArc(
+                color = Color.White,
+                startAngle = -90f, sweepAngle = 360f * fraction, useCenter = false,
+                topLeft = topLeft, size = arcSize,
+                style = Stroke(width = stroke, cap = StrokeCap.Round)
+            )
+        }
+        Text(
+            String.format(
+                Locale.US, "%02d : %02d : %02d",
+                remainingSeconds / 3600, (remainingSeconds % 3600) / 60, remainingSeconds % 60
+            ),
+            color = Color.White,
+            fontFamily = TitleFontFamily,
+            fontSize = 30.sp,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
@@ -1690,6 +1729,14 @@ private fun ActiveJourneyScreen(
         )
     }
     Spacer(Modifier.height(16.dp))
+
+    if (target is ActiveTarget.Timer && remainingSeconds != null) {
+        // The service already records the chosen length, so the ring can show elapsed
+        // progress without adding a start timestamp to the model.
+        val total = (prefs.getInt("duration_minutes", 0) * 60L).coerceAtLeast(remainingSeconds)
+        TimerFace(totalSeconds = total, remainingSeconds = remainingSeconds)
+        Spacer(Modifier.height(16.dp))
+    }
 
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
         StatCard("ETA", arrivalAtEpochMs.takeIf { it > 0L }?.let(::formatClockTime) ?: "—", Modifier.weight(1f))
