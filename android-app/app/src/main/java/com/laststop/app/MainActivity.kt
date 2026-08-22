@@ -19,6 +19,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -1396,6 +1399,49 @@ private fun ChoiceButton(label: String, selected: Boolean, onClick: () -> Unit, 
     ) { Text(label, fontWeight = FontWeight.Bold) }
 }
 
+/** Maps a belongings label to one of the supplied Iconsax drawables. */
+internal fun belongingIcon(item: String): Int = when (item.lowercase(Locale.US)) {
+    "bag", "handbag" -> R.drawable.ic_bag
+    "phone", "mobile" -> R.drawable.ic_mobile
+    "wallet" -> R.drawable.ic_empty_wallet
+    "keys", "key" -> R.drawable.ic_key
+    "earbuds", "headphones" -> R.drawable.ic_headphones
+    "sunglasses", "glasses" -> R.drawable.ic_glass
+    "laptop" -> R.drawable.ic_keyboard_open
+    "charger", "power bank" -> R.drawable.ic_battery_charging
+    "water bottle" -> R.drawable.ic_theta_theta
+    "umbrella" -> R.drawable.ic_ticket_star
+    "medicines", "medicine" -> R.drawable.ic_book_open
+    "kids" -> R.drawable.ic_profile_2user
+    "passport", "boarding pass" -> R.drawable.ic_ticket_star
+    "watch" -> R.drawable.ic_watch
+    "books" -> R.drawable.ic_book_open
+    else -> R.drawable.ic_shopping_bag
+}
+
+/** A dark pill carrying a lime icon and label — the recurring item chip in the designs. */
+@Composable
+private fun ItemChip(
+    item: String,
+    modifier: Modifier = Modifier,
+    trailing: (@Composable () -> Unit)? = null
+) {
+    Row(
+        modifier = modifier
+            .background(Ink, RoundedCornerShape(50))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(painterResource(belongingIcon(item)), null, tint = Accent, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(9.dp))
+        Text(item, color = Accent, fontFamily = BodyFontFamily, fontSize = 14.sp, modifier = Modifier.weight(1f, fill = false))
+        if (trailing != null) {
+            Spacer(Modifier.width(9.dp))
+            trailing()
+        }
+    }
+}
+
 @Composable
 private fun ActiveJourneyScreen(
     location: Location?,
@@ -1425,69 +1471,218 @@ private fun ActiveJourneyScreen(
     val remainingSeconds = if (target is ActiveTarget.Timer) {
         ((target.endAtEpochMs - System.currentTimeMillis()) / 1000L).coerceAtLeast(0L).also { tick }
     } else null
-    val arrivalAtEpochMs = remember(tick) {
-        context.getSharedPreferences("laststop", Context.MODE_PRIVATE).getLong("eta_arrival_at_epoch_ms", 0L)
-    }
-    val arrivalClockText = arrivalAtEpochMs.takeIf { it > 0L }?.let(::formatClockTime)
-
-    Text(if (exitMode) "Check before\nyou leave." else "Journey in\nprogress.", color = Ink,
-        fontSize = 42.sp, lineHeight = 45.sp, fontWeight = FontWeight.Black)
-    Spacer(Modifier.height(24.dp))
+    val prefs = context.getSharedPreferences("laststop", Context.MODE_PRIVATE)
+    val arrivalAtEpochMs = remember(tick) { prefs.getLong("eta_arrival_at_epoch_ms", 0L) }
+    val transport = remember(tick) { prefs.getString("travel_mode", "Bike") ?: "Bike" }
 
     if (exitMode) {
-        selectedItems.forEach { item ->
-            ChoiceButton(item, item in checkedItems, {
+        ExitChecklist(
+            items = selectedItems.toList(),
+            checkedItems = checkedItems,
+            onToggle = { item ->
                 checkedItems = if (item in checkedItems) checkedItems - item else checkedItems + item
-            }, Modifier.fillMaxWidth())
-            Spacer(Modifier.height(10.dp))
-        }
-        Spacer(Modifier.height(10.dp))
-        Button(
-            onClick = onStop,
-            enabled = selectedItems.isEmpty() || checkedItems.containsAll(selectedItems),
-            modifier = Modifier.fillMaxWidth().height(60.dp),
-            shape = RoundedCornerShape(32.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = DeepInk)
-        ) { Text("All checked — finish", fontWeight = FontWeight.Bold) }
-    } else {
-        Column(modifier = Modifier.fillMaxWidth().background(Card, RoundedCornerShape(24.dp)).padding(22.dp)) {
-            when (target) {
-                is ActiveTarget.ToDestination -> {
-                    Text("HEADING TO", color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    Text(target.destination.name, color = Ink, fontSize = 26.sp, fontWeight = FontWeight.Black)
-                    Spacer(Modifier.height(20.dp))
-                    Text("DISTANCE REMAINING", color = Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Text(distance?.let(::formatDistance) ?: "Finding location…", color = Ink, fontSize = 36.sp, fontWeight = FontWeight.Black)
-                }
-                is ActiveTarget.Timer -> {
-                    Text("TIME REMAINING", color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    Text(formatCountdown(remainingSeconds ?: 0L), color = Ink, fontSize = 36.sp, fontWeight = FontWeight.Black)
-                }
-            }
-            if (arrivalClockText != null) {
-                Spacer(Modifier.height(14.dp))
-                Text("ARRIVING AROUND", color = Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                Text(arrivalClockText, color = Ink, fontSize = 20.sp, fontWeight = FontWeight.Black)
-            }
-            Spacer(Modifier.height(10.dp))
-            Text(
-                if (target is ActiveTarget.ToDestination) {
-                    "Arrival time uses live traffic data. You'll be alerted at 5 min, 1 min, and on arrival."
-                } else {
-                    "Tracking continues when QuikLook is minimized. You'll be alerted at 5 min, 1 min, and on arrival."
-                },
-                color = Muted,
-                fontSize = 13.sp
-            )
-        }
-        Spacer(Modifier.height(18.dp))
-        Button(onClick = onEnterExitMode, modifier = Modifier.fillMaxWidth().height(58.dp),
-            shape = RoundedCornerShape(32.dp), colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = DeepInk)) {
-            Text("Enter Exit Mode", fontSize = 17.sp, fontWeight = FontWeight.Black)
-        }
-        Spacer(Modifier.height(10.dp))
-        TextButton(onClick = onStop, modifier = Modifier.fillMaxWidth()) { Text("Stop journey", color = Muted) }
+            },
+            onDone = onStop
+        )
+        return
     }
+
+    // Header strip — journey state and the headline number, per the design.
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Accent, RoundedCornerShape(18.dp))
+            .padding(horizontal = 18.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(Modifier.size(8.dp).background(Ink, RoundedCornerShape(50)))
+        Spacer(Modifier.width(9.dp))
+        Text("JOURNEY ACTIVE", color = Ink, fontFamily = TitleFontFamily, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+        Text(
+            when {
+                distance != null -> "${formatDistance(distance)} left"
+                remainingSeconds != null -> "${formatCountdown(remainingSeconds)} left"
+                else -> ""
+            },
+            color = Ink, fontFamily = BodyFontFamily, fontSize = 13.sp, fontWeight = FontWeight.Bold
+        )
+    }
+    Spacer(Modifier.height(16.dp))
+
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+        StatCard("ETA", arrivalAtEpochMs.takeIf { it > 0L }?.let(::formatClockTime) ?: "—", Modifier.weight(1f))
+        StatCard(
+            "Remaining",
+            when {
+                remainingSeconds != null -> formatCountdown(remainingSeconds)
+                distance != null -> formatDistance(distance)
+                else -> "—"
+            },
+            Modifier.weight(1f)
+        )
+    }
+    Spacer(Modifier.height(12.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+        StatCard("Transport", transport, Modifier.weight(1f))
+        StatCard("Destination", (target as? ActiveTarget.ToDestination)?.destination?.name ?: "Timer", Modifier.weight(1f))
+    }
+    Spacer(Modifier.height(16.dp))
+
+    AlertProgress(
+        stage = when {
+            remainingSeconds != null && remainingSeconds <= 60 -> 2
+            distance != null && distance <= 500f -> 2
+            remainingSeconds != null && remainingSeconds <= 300 -> 1
+            distance != null && distance <= 2_000f -> 1
+            else -> 0
+        }
+    )
+    Spacer(Modifier.height(16.dp))
+
+    Column(modifier = Modifier.fillMaxWidth().background(Card, RoundedCornerShape(22.dp)).padding(18.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("ACTIVE LIST", color = Muted, fontFamily = BodyFontFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            Text("${selectedItems.size} items", color = Ink, fontFamily = TitleFontFamily, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.height(14.dp))
+        selectedItems.chunked(2).forEach { row ->
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                row.forEach { item -> ItemChip(item, Modifier.weight(1f)) }
+                if (row.size == 1) Spacer(Modifier.weight(1f))
+            }
+            Spacer(Modifier.height(10.dp))
+        }
+    }
+    Spacer(Modifier.height(20.dp))
+
+    Button(
+        onClick = onEnterExitMode,
+        modifier = Modifier.fillMaxWidth().height(60.dp),
+        shape = RoundedCornerShape(30.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Accent)
+    ) { Text("Check my things", fontFamily = TitleFontFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+    Spacer(Modifier.height(10.dp))
+    Button(
+        onClick = onStop,
+        modifier = Modifier.fillMaxWidth().height(60.dp),
+        shape = RoundedCornerShape(30.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = QuikLook.Danger, contentColor = Color.White)
+    ) { Text("Stop journey", fontFamily = TitleFontFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+}
+
+@Composable
+private fun StatCard(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .background(Card, RoundedCornerShape(18.dp))
+            .padding(horizontal = 16.dp, vertical = 14.dp)
+    ) {
+        Text(label, color = Muted, fontFamily = BodyFontFamily, fontSize = 12.sp)
+        Spacer(Modifier.height(3.dp))
+        Text(value, color = Ink, fontFamily = TitleFontFamily, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+/** Leave — Midway — Arrival rail showing which alerts have fired. */
+@Composable
+private fun AlertProgress(stage: Int) {
+    Column(modifier = Modifier.fillMaxWidth().background(Card, RoundedCornerShape(22.dp)).padding(18.dp)) {
+        Text("EXIT CHECKLIST ALERTS", color = Muted, fontFamily = BodyFontFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(14.dp))
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            listOf("Leave", "Midway", "Arrival").forEachIndexed { i, label ->
+                val reached = i <= stage
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        Modifier
+                            .size(14.dp)
+                            .background(if (reached) Accent else QuikLook.Border, RoundedCornerShape(50))
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        label,
+                        color = if (reached) Ink else Muted,
+                        fontFamily = BodyFontFamily,
+                        fontSize = 12.sp,
+                        fontWeight = if (reached) FontWeight.Bold else FontWeight.Normal
+                    )
+                }
+                if (i < 2) {
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .height(2.dp)
+                            .padding(horizontal = 8.dp)
+                            .background(if (i < stage) Ink else QuikLook.Border)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Design 9 — the exit checklist, on the green hero card. */
+@Composable
+private fun ExitChecklist(
+    items: List<String>,
+    checkedItems: Set<String>,
+    onToggle: (String) -> Unit,
+    onDone: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                Brush.radialGradient(listOf(QuikLook.GreenLight, QuikLook.GreenDark)),
+                RoundedCornerShape(28.dp)
+            )
+            .padding(22.dp)
+    ) {
+        Text(
+            "Check your things\nbefore leaving",
+            color = Color.White,
+            fontFamily = TitleFontFamily,
+            fontSize = 26.sp,
+            lineHeight = 31.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(22.dp))
+        items.forEach { item ->
+            ItemChip(
+                item,
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { onToggle(item) }
+            ) {
+                Box(
+                    Modifier
+                        .size(22.dp)
+                        .background(if (item in checkedItems) Accent else Color.White.copy(alpha = 0.18f), RoundedCornerShape(50)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (item in checkedItems) {
+                        Icon(painterResource(R.drawable.ic_quiklook_mark), null, tint = Ink, modifier = Modifier.size(14.dp))
+                    }
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+        }
+    }
+    Spacer(Modifier.height(20.dp))
+    Button(
+        onClick = onDone,
+        enabled = items.isEmpty() || checkedItems.containsAll(items),
+        modifier = Modifier.fillMaxWidth().height(60.dp),
+        shape = RoundedCornerShape(30.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Ink,
+            contentColor = Accent,
+            disabledContainerColor = QuikLook.Surface,
+            disabledContentColor = Muted
+        )
+    ) { Text("I took everything", fontFamily = TitleFontFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
 }
 
 private fun formatDistance(meters: Float): String = if (meters >= 1_000f) {
