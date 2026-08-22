@@ -65,7 +65,7 @@ import io.github.rabehx.iconsax.outline.Shield
 import io.github.rabehx.iconsax.outline.TickCircle
 import io.github.rabehx.iconsax.outline.Timer
 
-private enum class OnboardingStep { Welcome, HowItWorks, KeepPlacesSynced, Permission, Profile }
+private enum class OnboardingStep { Welcome, HowItWorks, KeepPlacesSynced, Permission, Profile, HomeLocation }
 
 private val Lime = Color(0xFFDBFF45)
 private val MutedText = Color(0xFFB5C0C6)
@@ -98,6 +98,8 @@ internal fun OnboardingFlow(
     destinationPickerError: String?,
     hasLocationPermission: Boolean,
     onRequestLocationPermission: () -> Unit,
+    initialProfile: UserProfile,
+    onSaveProfile: (UserProfile) -> Unit,
     onFinish: () -> Unit
 ) {
     var step by remember { mutableStateOf(OnboardingStep.Welcome) }
@@ -125,6 +127,15 @@ internal fun OnboardingFlow(
                 )
                 OnboardingStep.Profile -> ProfileStep(
                     signedInUser = signedInUser,
+                    initialProfile = initialProfile,
+                    onSaveProfile = onSaveProfile,
+                    onNext = { step = OnboardingStep.HomeLocation }
+                )
+                OnboardingStep.HomeLocation -> HomeLocationStep(
+                    homeDestination = homeDestination,
+                    onOpenDestinationPicker = onOpenDestinationPicker,
+                    placesAvailable = placesAvailable,
+                    destinationPickerError = destinationPickerError,
                     onFinish = onFinish
                 )
             }
@@ -458,12 +469,17 @@ private fun PermissionStep(
 @Composable
 private fun ProfileStep(
     signedInUser: SignedInUser?,
-    onFinish: () -> Unit
+    initialProfile: UserProfile,
+    onSaveProfile: (UserProfile) -> Unit,
+    onNext: () -> Unit
 ) {
-    var name by remember { mutableStateOf(signedInUser?.displayName.orEmpty()) }
-    var age by remember { mutableStateOf("") }
-    var gender by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
+    // Prefer anything already saved; fall back to the Google account name on first run.
+    var name by remember {
+        mutableStateOf(initialProfile.name.ifBlank { signedInUser?.displayName.orEmpty() })
+    }
+    var age by remember { mutableStateOf(initialProfile.age) }
+    var gender by remember { mutableStateOf(initialProfile.gender) }
+    var phone by remember { mutableStateOf(initialProfile.phone) }
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = Color.White,
         unfocusedTextColor = Color.White,
@@ -495,9 +511,16 @@ private fun ProfileStep(
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(phone, { phone = it }, label = { Text("Phone number (optional)") }, singleLine = true, colors = fieldColors, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(34.dp))
-            LimeButton("Continue", onFinish, Modifier.fillMaxWidth())
+            LimeButton(
+                "Continue",
+                {
+                    onSaveProfile(UserProfile(name = name, age = age, gender = gender, phone = phone))
+                    onNext()
+                },
+                Modifier.fillMaxWidth()
+            )
             Spacer(Modifier.height(8.dp))
-            TextButton(onClick = onFinish, modifier = Modifier.fillMaxWidth()) {
+            TextButton(onClick = onNext, modifier = Modifier.fillMaxWidth()) {
                 Text("Skip for now", color = DimText, fontFamily = BodyFontFamily, fontWeight = FontWeight.Bold)
             }
         }
