@@ -1221,7 +1221,7 @@ private fun JourneyScreen(
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(painterResource(R.drawable.ic_glass), null, tint = Muted, modifier = Modifier.size(19.dp))
+            Icon(painterResource(R.drawable.ic_location_add), null, tint = Muted, modifier = Modifier.size(19.dp))
             Spacer(Modifier.width(11.dp))
             Text(
                 pickedDestination?.name ?: "Where are you going?",
@@ -1256,12 +1256,12 @@ private fun JourneyScreen(
         SectionLabel("Mode of travel")
         Spacer(Modifier.height(12.dp))
         val modes = listOf(
-            "Bike" to R.drawable.ic_theta_theta,
-            "Walk" to R.drawable.ic_user,
+            "Bike" to R.drawable.ic_bike,
+            "Walk" to R.drawable.ic_walk,
             "Bus" to R.drawable.ic_bus,
             "Car" to R.drawable.ic_car,
             "Flight" to R.drawable.ic_airplane,
-            "Train" to R.drawable.ic_building
+            "Train" to R.drawable.ic_train
         )
         modes.chunked(2).forEach { row ->
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
@@ -1620,23 +1620,26 @@ private fun ChoiceButton(label: String, selected: Boolean, onClick: () -> Unit, 
     ) { Text(label, fontWeight = FontWeight.Bold) }
 }
 
-/** Maps a belongings label to one of the supplied Iconsax drawables. */
+/**
+ * Maps a belongings label to a drawable, checked against what each supplied glyph actually
+ * depicts rather than against its filename — iconsax-glass is eyewear, not a magnifier, and
+ * iconsax-theta is not a vehicle. Anything without a genuine match falls back to a plain bag
+ * rather than borrowing a misleading icon.
+ */
 internal fun belongingIcon(item: String): Int = when (item.lowercase(Locale.US)) {
-    "bag", "handbag" -> R.drawable.ic_bag
-    "phone", "mobile" -> R.drawable.ic_mobile
+    "bag", "handbag", "cabin bag", "suitcase" -> R.drawable.ic_bag
+    "phone", "mobile", "ipad", "tablet" -> R.drawable.ic_mobile
     "wallet" -> R.drawable.ic_empty_wallet
     "keys", "key" -> R.drawable.ic_key
     "earbuds", "headphones" -> R.drawable.ic_headphones
     "sunglasses", "glasses" -> R.drawable.ic_glass
     "laptop" -> R.drawable.ic_keyboard_open
     "charger", "power bank" -> R.drawable.ic_battery_charging
-    "water bottle" -> R.drawable.ic_theta_theta
-    "umbrella" -> R.drawable.ic_ticket_star
-    "medicines", "medicine" -> R.drawable.ic_book_open
     "kids" -> R.drawable.ic_profile_2user
-    "passport", "boarding pass" -> R.drawable.ic_ticket_star
+    "boarding pass", "ticket" -> R.drawable.ic_ticket_star
     "watch" -> R.drawable.ic_watch
-    "books" -> R.drawable.ic_book_open
+    "books", "book" -> R.drawable.ic_book_open
+    "passport" -> R.drawable.ic_password_check
     else -> R.drawable.ic_shopping_bag
 }
 

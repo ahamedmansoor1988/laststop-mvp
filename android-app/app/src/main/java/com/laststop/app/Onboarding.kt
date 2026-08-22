@@ -272,11 +272,11 @@ private fun IntroStep(onNext: () -> Unit) {
     Spacer(Modifier.height(16.dp))
     DarkBody("QuikLook helps you check your things before you leave a place.")
     Spacer(Modifier.height(46.dp))
-    FeatureRow(R.drawable.ic_glass, "Smart place detection ", "knows when you're about to leave a place.")
+    FeatureRow(R.drawable.ic_location_add, "Smart place detection ", "knows when you're about to leave a place.")
     Spacer(Modifier.height(22.dp))
     FeatureRow(R.drawable.ic_timer, "Timely reminders ", "alerts you near the end of your visit.")
     Spacer(Modifier.height(22.dp))
-    FeatureRow(R.drawable.ic_keyboard_open, "Check with confidence ", "never leave your essentials behind.")
+    FeatureRow(R.drawable.ic_password_check, "Check with confidence ", "never leave your essentials behind.")
     Spacer(Modifier.height(48.dp))
     LimeButton("Continue", onNext, Modifier.fillMaxWidth())
 }
