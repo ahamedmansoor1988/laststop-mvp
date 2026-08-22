@@ -1,30 +1,31 @@
 package com.laststop.app
 
+import androidx.compose.material3.Typography
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.googlefonts.Font
-import androidx.compose.ui.text.googlefonts.GoogleFont
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.sp
-import androidx.compose.material3.Typography
 
-private val fontProvider = GoogleFont.Provider(
-    providerAuthority = "com.google.android.gms.fonts",
-    providerPackage = "com.google.android.gms",
-    certificates = R.array.com_google_android_gms_fonts_certs
-)
+/*
+ * Uses the platform font rather than Google's downloadable-fonts provider.
+ *
+ * The provider version crashed the app. Declaring it requires a font_certs.xml holding the
+ * provider's base-64 certificate hashes, and androidx parses that file whenever it inflates a
+ * view that resolves a fontFamily — including plain EditTexts inside library layouts. If the
+ * base-64 is not valid, FontResourcesParserCompat.readCerts throws IllegalArgumentException and
+ * takes the whole activity down. That is what killed the Places address-search screen.
+ *
+ * The requested display face ("Momo Trust Sans") is also not published on Google Fonts, so the
+ * provider could never have resolved it in any case.
+ *
+ * To restore the brand typography: drop the real .ttf/.otf files into res/font and build these
+ * families from them with Font(R.font.…). Bundled fonts need no certificates and no network, so
+ * this class of failure cannot recur.
+ */
 
-val TitleFontFamily = FontFamily(
-    Font(GoogleFont("Momo Trust Sans"), fontProvider, FontWeight.Bold),
-    Font(GoogleFont("Momo Trust Sans"), fontProvider, FontWeight.Black),
-    Font(GoogleFont("Momo Trust Sans"), fontProvider, FontWeight.Medium)
-)
+val TitleFontFamily = FontFamily.SansSerif
 
-val BodyFontFamily = FontFamily(
-    Font(GoogleFont("Inter"), fontProvider, FontWeight.Normal),
-    Font(GoogleFont("Inter"), fontProvider, FontWeight.Medium),
-    Font(GoogleFont("Inter"), fontProvider, FontWeight.Bold)
-)
+val BodyFontFamily = FontFamily.SansSerif
 
 val QuikLookTypography = Typography(
     displayLarge = TextStyle(fontFamily = TitleFontFamily, fontWeight = FontWeight.Black, fontSize = 42.sp, lineHeight = 45.sp),
