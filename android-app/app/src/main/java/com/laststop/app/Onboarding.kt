@@ -423,7 +423,8 @@ private fun PermissionStep(
             )
             Spacer(Modifier.height(14.dp))
             Text(
-                "To trigger remind-on-exit seamlessly, quiklook needs background location permission.",
+                "So QuikLook can notice when you're travelling and remind you before you get out, " +
+                    "it needs access to your location while the app is running.",
                 color = Color.White.copy(alpha = 0.9f),
                 fontFamily = BodyFontFamily,
                 fontSize = 13.sp,
@@ -447,7 +448,9 @@ private fun PermissionStep(
         }
         Spacer(Modifier.height(10.dp))
         Text(
-            "Your location data never leaves your device. No ad networks, no tracking. Only clean reminders.",
+            "QuikLook has no servers of its own — your trips stay on your phone. When you track " +
+                "to a destination, your location goes to Google Maps only to work out your arrival " +
+                "time. No ad networks, no tracking. Only clean reminders.",
             color = MutedText,
             fontFamily = BodyFontFamily,
             fontSize = 13.sp,
