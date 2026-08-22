@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.ui.draw.clip
@@ -184,6 +185,7 @@ class MainActivity : ComponentActivity() {
     private var userProfile by mutableStateOf(UserProfile())
     private var signInError by mutableStateOf<String?>(null)
     private var pickingHomeForOnboarding = false
+    private var pickingSavedPlace = false
     private var hasLocationPermissionState by mutableStateOf(false)
     private lateinit var placesClient: PlacesClient
 
@@ -226,6 +228,10 @@ class MainActivity : ComponentActivity() {
                     if (pickingHomeForOnboarding) {
                         pickingHomeForOnboarding = false
                         addSavedPlace("Home", picked)
+                    } else if (pickingSavedPlace) {
+                        pickingSavedPlace = false
+                        addSavedPlace(picked.name, picked)
+                        pickedDestination = picked
                     } else {
                         pickedDestination = picked
                         saveRecentDestination(picked)
@@ -301,6 +307,7 @@ class MainActivity : ComponentActivity() {
                 )
             } else {
             LastStopApp(
+                onExitApp = { finish() },
                 userProfile = userProfile,
                 locationState = locationState,
                 onPermissionResult = { granted ->
@@ -318,6 +325,7 @@ class MainActivity : ComponentActivity() {
                 recentDestinations = recentDestinations,
                 pickedDestination = pickedDestination,
                 onPickDestination = { pickedDestination = it; saveRecentDestination(it) },
+                onClearRecents = ::clearRecentDestinations,
                 savedPlaces = savedPlaces,
                 onAddSavedPlace = ::addSavedPlace,
                 onRemoveSavedPlace = ::removeSavedPlace,
@@ -325,6 +333,7 @@ class MainActivity : ComponentActivity() {
                 onAddCatalogItem = ::addCatalogItem,
                 onRemoveCatalogItem = ::removeCatalogItem,
                 onOpenDestinationPicker = ::openDestinationPicker,
+                onOpenSavedPlacePicker = ::openSavedPlacePicker,
                 placesAvailable = placesAvailable,
                 destinationPickerError = destinationPickerError,
                 journeyActive = journeyActive,
@@ -473,6 +482,21 @@ class MainActivity : ComponentActivity() {
             return
         }
         pickingHomeForOnboarding = false
+        pickingSavedPlace = false
+        destinationPickerError = null
+        destinationPicker.launch(PlaceAutocomplete.createIntent(this) {
+            setCountries(listOf("in"))
+        })
+    }
+
+    /** Add place: the result is stored as a saved place, not just used as this trip's target. */
+    private fun openSavedPlacePicker() {
+        if (!placesAvailable) {
+            destinationPickerError = "Place search is unavailable — no Places API key is configured in this build."
+            return
+        }
+        pickingHomeForOnboarding = false
+        pickingSavedPlace = true
         destinationPickerError = null
         destinationPicker.launch(PlaceAutocomplete.createIntent(this) {
             setCountries(listOf("in"))
@@ -485,6 +509,7 @@ class MainActivity : ComponentActivity() {
             return
         }
         pickingHomeForOnboarding = true
+        pickingSavedPlace = false
         destinationPickerError = null
         destinationPicker.launch(PlaceAutocomplete.createIntent(this) {
             setCountries(listOf("in"))
@@ -571,6 +596,11 @@ class MainActivity : ComponentActivity() {
             .distinctBy { "${it.latitude},${it.longitude}" }
             .take(5)
         saveRecentDestinations(recentDestinations)
+    }
+
+    private fun clearRecentDestinations() {
+        recentDestinations = emptyList()
+        saveRecentDestinations(emptyList())
     }
 
     private fun loadRecentDestinations(): List<Destination> {
@@ -750,6 +780,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun LastStopApp(
+    onExitApp: () -> Unit,
     userProfile: UserProfile,
     locationState: LocationUiState,
     onPermissionResult: (Boolean) -> Unit,
@@ -765,10 +796,12 @@ private fun LastStopApp(
     recentDestinations: List<Destination>,
     pickedDestination: Destination?,
     onPickDestination: (Destination) -> Unit,
+    onClearRecents: () -> Unit,
     savedPlaces: List<SavedPlace>,
     onAddSavedPlace: (String, Destination) -> Unit,
     onRemoveSavedPlace: (String) -> Unit,
     onOpenDestinationPicker: () -> Unit,
+    onOpenSavedPlacePicker: () -> Unit,
     placesAvailable: Boolean,
     destinationPickerError: String?,
     belongingsCatalog: List<String>,
@@ -848,6 +881,19 @@ private fun LastStopApp(
                     .padding(horizontal = 24.dp, vertical = 28.dp)
             ) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    if (uiScreen != UiScreen.Idle && !journeyActive) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_arrow_left),
+                            contentDescription = "Back",
+                            tint = Ink,
+                            modifier = Modifier
+                                .size(30.dp)
+                                .clip(CircleShape)
+                                .clickable { onChangeScreen(UiScreen.Idle) }
+                                .padding(5.dp)
+                        )
+                        Spacer(Modifier.width(10.dp))
+                    }
                     Text("QUIKLOOK", color = Muted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     if (!journeyActive) {
                         TextButton(onClick = { onChangeScreen(UiScreen.Settings) }) {
@@ -930,10 +976,12 @@ private fun LastStopApp(
                         recentDestinations = recentDestinations,
                         pickedDestination = pickedDestination,
                         onPickDestination = onPickDestination,
+                        onClearRecents = onClearRecents,
                         savedPlaces = savedPlaces,
                         onAddSavedPlace = onAddSavedPlace,
                         onRemoveSavedPlace = onRemoveSavedPlace,
                         onOpenDestinationPicker = onOpenDestinationPicker,
+                        onOpenSavedPlacePicker = onOpenSavedPlacePicker,
                         placesAvailable = placesAvailable,
                         destinationPickerError = destinationPickerError,
                         travelMode = travelMode,
@@ -961,6 +1009,7 @@ private fun LastStopApp(
                         onBack = { onChangeScreen(UiScreen.Idle) }
                     )
                     else -> IdleScreen(
+                        onDismiss = onExitApp,
                         catalog = belongingsCatalog,
                         selectedItems = selectedItems,
                         onToggleItem = { item ->
@@ -984,6 +1033,7 @@ private fun LastStopApp(
 
 @Composable
 private fun IdleScreen(
+    onDismiss: () -> Unit,
     catalog: List<String>,
     selectedItems: Set<String>,
     onToggleItem: (String) -> Unit,
@@ -996,7 +1046,7 @@ private fun IdleScreen(
         onToggleItem = onToggleItem,
         onAddItem = onAddItem,
         onContinue = onStartNow,
-        onDismiss = null
+        onDismiss = onDismiss
     )
 }
 
@@ -1261,10 +1311,12 @@ private fun JourneyScreen(
     recentDestinations: List<Destination>,
     pickedDestination: Destination?,
     onPickDestination: (Destination) -> Unit,
+    onClearRecents: () -> Unit,
     savedPlaces: List<SavedPlace>,
     onAddSavedPlace: (String, Destination) -> Unit,
     onRemoveSavedPlace: (String) -> Unit,
     onOpenDestinationPicker: () -> Unit,
+    onOpenSavedPlacePicker: () -> Unit,
     placesAvailable: Boolean,
     destinationPickerError: String?,
     travelMode: String,
@@ -1312,8 +1364,12 @@ private fun JourneyScreen(
         Spacer(Modifier.height(22.dp))
         SectionLabel("Saved location")
         Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(9.dp), modifier = Modifier.fillMaxWidth()) {
-            savedPlaces.take(2).forEach { place ->
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(9.dp),
+            verticalArrangement = Arrangement.spacedBy(9.dp)
+        ) {
+            savedPlaces.forEach { place ->
                 val selected = pickedDestination?.name == place.destination.name
                 PlaceChip(
                     label = place.label,
@@ -1322,7 +1378,7 @@ private fun JourneyScreen(
                     onClick = { onPickDestination(place.destination) }
                 )
             }
-            AddPlaceChip(enabled = placesAvailable, onClick = onOpenDestinationPicker)
+            AddPlaceChip(enabled = placesAvailable, onClick = onOpenSavedPlacePicker)
         }
 
         val recents = recentDestinations.filter { recent ->
@@ -1330,7 +1386,20 @@ private fun JourneyScreen(
         }
         if (recents.isNotEmpty()) {
             Spacer(Modifier.height(20.dp))
-            SectionLabel("Recent")
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f)) { SectionLabel("Recent") }
+                Text(
+                    "Clear",
+                    color = Muted,
+                    fontFamily = BodyFontFamily,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable(onClick = onClearRecents)
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                )
+            }
             Spacer(Modifier.height(12.dp))
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
@@ -1844,6 +1913,7 @@ internal fun belongingIcon(item: String): Int = when (item.lowercase(Locale.US))
     "watch" -> R.drawable.ic_watch
     "books", "book" -> R.drawable.ic_book_open
     "passport" -> R.drawable.ic_password_check
+    "medicine", "medicines" -> R.drawable.ic_medicine
     else -> R.drawable.ic_shopping_bag
 }
 
@@ -2015,7 +2085,15 @@ private fun StatCard(label: String, value: String, modifier: Modifier = Modifier
     ) {
         Text(label, color = Muted, fontFamily = BodyFontFamily, fontSize = 12.sp)
         Spacer(Modifier.height(3.dp))
-        Text(value, color = Ink, fontFamily = TitleFontFamily, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+        Text(
+            value,
+            color = Ink,
+            fontFamily = TitleFontFamily,
+            fontSize = 17.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -2389,16 +2467,19 @@ private fun LastStopPreview() {
         onRequestIgnoreBatteryOptimizations = {},
         onStartUpdates = {},
         onStopUpdates = {},
+        onExitApp = {},
         userProfile = UserProfile(),
         uiScreen = UiScreen.Idle,
         onChangeScreen = {},
         recentDestinations = emptyList(),
         pickedDestination = null,
         onPickDestination = {},
+        onClearRecents = {},
         savedPlaces = emptyList(),
         onAddSavedPlace = { _, _ -> },
         onRemoveSavedPlace = {},
         onOpenDestinationPicker = {},
+        onOpenSavedPlacePicker = {},
         placesAvailable = true,
         destinationPickerError = null,
         belongingsCatalog = DEFAULT_BELONGINGS,
