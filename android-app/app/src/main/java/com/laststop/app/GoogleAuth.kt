@@ -10,6 +10,15 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 
 data class SignedInUser(val displayName: String, val email: String, val photoUrl: String?)
 
+/** Details collected on the onboarding profile step. Every field is optional — the step can be
+ * skipped, and a skipped or blank field is stored as an empty string. */
+data class UserProfile(
+    val name: String = "",
+    val age: String = "",
+    val gender: String = "",
+    val phone: String = ""
+)
+
 sealed interface SignInResult {
     data class Success(val user: SignedInUser) : SignInResult
     data object Cancelled : SignInResult

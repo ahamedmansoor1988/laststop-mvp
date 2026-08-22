@@ -161,6 +161,7 @@ class MainActivity : ComponentActivity() {
     private var destinationPickerError by mutableStateOf<String?>(null)
     private var onboardingComplete by mutableStateOf(true)
     private var signedInUser by mutableStateOf<SignedInUser?>(null)
+    private var userProfile by mutableStateOf(UserProfile())
     private var signInError by mutableStateOf<String?>(null)
     private var pickingHomeForOnboarding = false
     private var hasLocationPermissionState by mutableStateOf(false)
@@ -237,6 +238,7 @@ class MainActivity : ComponentActivity() {
         belongingsCatalog = loadBelongingsCatalog()
         onboardingComplete = getSharedPreferences("laststop", MODE_PRIVATE).getBoolean("onboarding_complete", false)
         signedInUser = loadSignedInUser()
+        userProfile = loadUserProfile()
         refreshJourneyState()
         refreshSystemLocationState()
         refreshPermissionState()
@@ -263,6 +265,8 @@ class MainActivity : ComponentActivity() {
                     destinationPickerError = destinationPickerError,
                     hasLocationPermission = hasLocationPermissionState,
                     onRequestLocationPermission = ::requestLocationPermissionForOnboarding,
+                    initialProfile = userProfile,
+                    onSaveProfile = ::saveUserProfile,
                     onFinish = ::finishOnboarding
                 )
             } else {
@@ -477,6 +481,26 @@ class MainActivity : ComponentActivity() {
             .putString("user_display_name", user.displayName)
             .putString("user_email", user.email)
             .putString("user_photo_url", user.photoUrl)
+            .apply()
+    }
+
+    private fun loadUserProfile(): UserProfile {
+        val prefs = getSharedPreferences("laststop", MODE_PRIVATE)
+        return UserProfile(
+            name = prefs.getString("profile_name", "") ?: "",
+            age = prefs.getString("profile_age", "") ?: "",
+            gender = prefs.getString("profile_gender", "") ?: "",
+            phone = prefs.getString("profile_phone", "") ?: ""
+        )
+    }
+
+    private fun saveUserProfile(profile: UserProfile) {
+        userProfile = profile
+        getSharedPreferences("laststop", MODE_PRIVATE).edit()
+            .putString("profile_name", profile.name.trim())
+            .putString("profile_age", profile.age.trim())
+            .putString("profile_gender", profile.gender.trim())
+            .putString("profile_phone", profile.phone.trim())
             .apply()
     }
 
