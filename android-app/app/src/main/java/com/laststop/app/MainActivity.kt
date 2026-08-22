@@ -30,6 +30,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -934,6 +936,18 @@ private fun LastStopApp(
                         onBack = { onChangeScreen(UiScreen.Idle) }
                     )
                     else -> IdleScreen(
+                        catalog = belongingsCatalog,
+                        selectedItems = selectedItems,
+                        onToggleItem = { item ->
+                            selectedItems = if (item in selectedItems) selectedItems - item else selectedItems + item
+                        },
+                        onAddItem = { name ->
+                            val trimmed = name.trim()
+                            if (trimmed.isNotEmpty()) {
+                                onAddCatalogItem(trimmed)
+                                selectedItems = selectedItems + trimmed
+                            }
+                        },
                         onStartNow = { onChangeScreen(UiScreen.Journey) }
                     )
                 }
@@ -944,78 +958,21 @@ private fun LastStopApp(
 }
 
 @Composable
-private fun IdleScreen(onStartNow: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Card, RoundedCornerShape(24.dp))
-            .padding(18.dp)
-    ) {
-        Text("Are you traveling?", color = Ink, fontFamily = TitleFontFamily, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(5.dp))
-        Text("Set active reminders for your next destination.", color = Color(0xFFB5C0C6), fontFamily = BodyFontFamily, fontSize = 13.sp)
-        Spacer(Modifier.height(16.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Button(
-                onClick = onStartNow,
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = DeepInk),
-                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 0.dp),
-                modifier = Modifier.height(40.dp)
-            ) { Text("Yes, set trip", fontWeight = FontWeight.Black) }
-            TextButton(onClick = {}, modifier = Modifier.height(40.dp)) {
-                Text("Not now", color = Color(0xFFB5C0C6), fontWeight = FontWeight.Bold)
-            }
-        }
-    }
-
-    Spacer(Modifier.height(16.dp))
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Card, RoundedCornerShape(50))
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        DashboardTab("Destination", true, onStartNow, Modifier.weight(1f))
-        DashboardTab("Timer", false, onStartNow, Modifier.weight(1f))
-    }
-    Spacer(Modifier.height(12.dp))
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Card, RoundedCornerShape(18.dp))
-            .clickable(onClick = onStartNow)
-            .padding(horizontal = 16.dp, vertical = 15.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(Iconsax.Outline.SearchNormal, contentDescription = null, tint = Muted, modifier = Modifier.height(20.dp).width(20.dp))
-        Spacer(Modifier.width(10.dp))
-        Text("Where are you going?", color = Muted, fontFamily = BodyFontFamily, fontSize = 14.sp)
-    }
-    Spacer(Modifier.height(12.dp))
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        DashboardChip("Home", onStartNow, icon = Iconsax.Outline.Home)
-        DashboardChip("Office", onStartNow, icon = Iconsax.Outline.Building)
-        DashboardChip("Add place", onStartNow, icon = Iconsax.Outline.Add)
-    }
-    Spacer(Modifier.height(22.dp))
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text("BELONGINGS", color = Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-        Text("Edit list", color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(onClick = onStartNow))
-    }
-    Spacer(Modifier.height(10.dp))
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        DashboardChip("Bag", onStartNow, selected = true, icon = Iconsax.Outline.Bag)
-        DashboardChip("Phone", onStartNow, selected = true, icon = Iconsax.Outline.Mobile)
-        DashboardChip("Wallet", onStartNow, selected = true, icon = Iconsax.Outline.Wallet)
-    }
-    Spacer(Modifier.height(8.dp))
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        DashboardChip("Laptop", onStartNow, icon = Iconsax.Outline.Monitor)
-        DashboardChip("Keys", onStartNow, selected = true, icon = Iconsax.Outline.Key)
-        DashboardChip("Earbuds", onStartNow, icon = Iconsax.Outline.Headphone)
-    }
+private fun IdleScreen(
+    catalog: List<String>,
+    selectedItems: Set<String>,
+    onToggleItem: (String) -> Unit,
+    onAddItem: (String) -> Unit,
+    onStartNow: () -> Unit
+) {
+    CarrySelection(
+        catalog = catalog,
+        selectedItems = selectedItems,
+        onToggleItem = onToggleItem,
+        onAddItem = onAddItem,
+        onContinue = onStartNow,
+        onDismiss = null
+    )
 }
 
 @Composable
@@ -1183,25 +1140,7 @@ private fun JourneyScreen(
     onCancel: () -> Unit
 ) {
     var useDestination by remember { mutableStateOf(true) }
-    var showCarry by remember { mutableStateOf(false) }
     var minutes by remember { mutableStateOf(15) }
-
-    // Design 8 — the carry list, shown once a trip is configured.
-    if (showCarry) {
-        CarrySelection(
-            catalog = catalog,
-            selectedItems = selectedItems,
-            onToggleItem = onToggleItem,
-            onAddItem = onAddItem,
-            onRemoveItem = onRemoveItem,
-            onBack = { showCarry = false },
-            onContinue = {
-                if (useDestination) pickedDestination?.let(onStartToDestination) else onStartTimer(minutes)
-            },
-            canContinue = if (useDestination) pickedDestination != null else minutes > 0
-        )
-        return
-    }
 
     // ---- Design 4 / 5: segmented control, then either destination or timer setup ----
     SegmentedTabs(
@@ -1294,7 +1233,7 @@ private fun JourneyScreen(
 
     Spacer(Modifier.height(30.dp))
     Button(
-        onClick = { showCarry = true },
+        onClick = { if (useDestination) pickedDestination?.let(onStartToDestination) else onStartTimer(minutes) },
         enabled = if (useDestination) pickedDestination != null else minutes > 0,
         modifier = Modifier.fillMaxWidth(0.92f).height(70.dp),
         shape = RoundedCornerShape(35.dp),
@@ -1470,98 +1409,147 @@ private fun PresetChip(minutes: Int, selected: Boolean, onClick: () -> Unit, mod
     }
 }
 
-/** Design 8 — "Select what you carry". */
+/**
+ * Design 8. Geometry from the source: a 348x300 hero at 60 corner radius with both prompt pills
+ * inside it, then chips that size to their own label — 39 tall at 11.5 radius, 9 apart across
+ * and 17 down — flowing three or so to a row rather than stretching to a fixed grid.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CarrySelection(
     catalog: List<String>,
     selectedItems: Set<String>,
     onToggleItem: (String) -> Unit,
     onAddItem: (String) -> Unit,
-    onRemoveItem: (String) -> Unit,
-    onBack: () -> Unit,
     onContinue: () -> Unit,
-    canContinue: Boolean
+    onDismiss: (() -> Unit)?
 ) {
+    var adding by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
+
     Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(1.35f)
-            .clip(RoundedCornerShape(28.dp))
+            .fillMaxWidth(348f / 412f)
+            .aspectRatio(348f / 300f)
+            .clip(RoundedCornerShape(percent = 17))
             .background(Brush.radialGradient(listOf(QuikLook.GreenLight, QuikLook.GreenDark))),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(22.dp)) {
-            Text("Are you\ntraveling?", color = Color.White, fontFamily = TitleFontFamily,
-                fontSize = 30.sp, lineHeight = 35.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 24.dp)) {
+            Text(
+                "Are you\ntraveling?", color = Color.White, fontFamily = TitleFontFamily,
+                fontSize = 30.sp, lineHeight = 35.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center
+            )
             Spacer(Modifier.height(10.dp))
-            Text("Set active reminders for your next destination.", color = Color.White.copy(alpha = 0.9f),
-                fontFamily = BodyFontFamily, fontSize = 14.sp, textAlign = TextAlign.Center)
+            Text(
+                "Set active reminders for your next destination.",
+                color = Color.White.copy(alpha = 0.92f), fontFamily = BodyFontFamily,
+                fontSize = 13.sp, lineHeight = 18.sp, textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(18.dp))
+            // Both pills live inside the card, 32 tall at 16 radius.
+            Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                PromptPill("Yes, set trip", filled = true, onClick = onContinue)
+                PromptPill("Not now", filled = false, onClick = { onDismiss?.invoke() })
+            }
         }
     }
-    Spacer(Modifier.height(24.dp))
+
+    Spacer(Modifier.height(26.dp))
     SectionLabel("Select what you carry")
     Spacer(Modifier.height(14.dp))
-    catalog.chunked(2).forEach { row ->
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            row.forEach { item ->
-                CarryChip(item, item in selectedItems, { onToggleItem(item) }, Modifier.weight(1f))
-            }
-            if (row.size == 1) Spacer(Modifier.weight(1f))
-        }
-        Spacer(Modifier.height(10.dp))
-    }
-    Spacer(Modifier.height(6.dp))
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(48.dp)
-            .background(Card, RoundedCornerShape(14.dp))
-            .padding(horizontal = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
+
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(9.dp),
+        verticalArrangement = Arrangement.spacedBy(17.dp)
     ) {
-        Icon(painterResource(R.drawable.ic_add), null, tint = Muted, modifier = Modifier.size(15.dp))
-        Spacer(Modifier.width(10.dp))
-        Box(Modifier.weight(1f)) { PlainField(query, { query = it }, "Add an item") }
-        if (query.isNotBlank()) {
-            TextButton(onClick = { onAddItem(query.trim()); query = "" }) {
-                Text("Add", color = Ink, fontWeight = FontWeight.Bold)
-            }
+        catalog.forEach { item ->
+            CarryChip(item, item in selectedItems, { onToggleItem(item) })
+        }
+        AddItemChip(onClick = { adding = !adding })
+    }
+
+    if (adding) {
+        Spacer(Modifier.height(14.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .background(Card, RoundedCornerShape(12.dp))
+                .padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(Modifier.weight(1f)) { PlainField(query, { query = it }, "Name the item") }
+            TextButton(
+                onClick = {
+                    val trimmed = query.trim()
+                    if (trimmed.isNotEmpty()) { onAddItem(trimmed); query = ""; adding = false }
+                }
+            ) { Text("Add", color = Ink, fontWeight = FontWeight.Bold) }
         }
     }
-    Spacer(Modifier.height(28.dp))
+
+    Spacer(Modifier.height(30.dp))
     Button(
         onClick = onContinue,
-        enabled = canContinue,
-        modifier = Modifier.fillMaxWidth(0.92f).height(70.dp),
+        modifier = Modifier.fillMaxWidth(300f / 412f).height(70.dp),
         shape = RoundedCornerShape(35.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Ink, contentColor = Color.White,
-            disabledContainerColor = QuikLook.Surface, disabledContentColor = Muted
+            containerColor = Ink, contentColor = Color.White
         )
     ) { Text("Continue", fontFamily = TitleFontFamily, fontSize = 17.sp, fontWeight = FontWeight.Bold) }
-    Spacer(Modifier.height(8.dp))
-    TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-        Text("Back", color = Muted, fontFamily = BodyFontFamily)
+}
+
+@Composable
+private fun PromptPill(label: String, filled: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .height(34.dp)
+            .clip(RoundedCornerShape(17.dp))
+            .background(if (filled) Accent else Color.White)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, color = Ink, fontFamily = TitleFontFamily, fontSize = 13.sp, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
-private fun CarryChip(item: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun AddItemChip(onClick: () -> Unit) {
     Row(
-        modifier = modifier
-            .height(46.dp)
-            .clip(RoundedCornerShape(14.dp))
+        modifier = Modifier
+            .height(39.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Card)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 13.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(painterResource(R.drawable.ic_add), null, tint = Muted, modifier = Modifier.size(14.dp))
+        Spacer(Modifier.width(7.dp))
+        Text("Add Item", color = Muted, fontFamily = BodyFontFamily, fontSize = 14.sp)
+    }
+}
+
+@Composable
+private fun CarryChip(item: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .height(39.dp)
+            .clip(RoundedCornerShape(12.dp))
             .background(if (selected) Ink else QuikLook.Surface)
             .clickable(onClick = onClick)
             .padding(horizontal = 13.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(painterResource(belongingIcon(item)), null, tint = if (selected) Accent else Ink, modifier = Modifier.size(17.dp))
-        Spacer(Modifier.width(9.dp))
+        Spacer(Modifier.width(8.dp))
         Text(item, color = if (selected) Accent else Ink, fontFamily = BodyFontFamily, fontSize = 14.sp, maxLines = 1)
     }
 }
+
 
 @Composable
 private fun TimeStepper(
