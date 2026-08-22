@@ -45,6 +45,7 @@ dependencies {
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui-text-google-fonts:1.7.6")
+    implementation("io.github.rabehx:iconsax-compose:0.0.1")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")

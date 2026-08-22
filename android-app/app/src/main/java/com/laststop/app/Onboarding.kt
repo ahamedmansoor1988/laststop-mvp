@@ -31,6 +31,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -47,18 +49,27 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.util.Log
+import io.github.rabehx.iconsax.Iconsax
+import io.github.rabehx.iconsax.outline.Home
+import io.github.rabehx.iconsax.outline.Location
+import io.github.rabehx.iconsax.outline.Routing
+import io.github.rabehx.iconsax.outline.SearchNormal
+import io.github.rabehx.iconsax.outline.Shield
+import io.github.rabehx.iconsax.outline.TickCircle
+import io.github.rabehx.iconsax.outline.Timer
 
-private enum class OnboardingStep { Welcome, KeepPlacesSynced, HowItWorks, Permission, HomeLocation }
+private enum class OnboardingStep { Welcome, HowItWorks, KeepPlacesSynced, Permission, Profile }
 
 private val Lime = Color(0xFFDBFF45)
 private val MutedText = Color(0xFFB5C0C6)
-private val DimText = Color(0xFF8A9098)
+private val DimText = Color(0xFF6E6D66)
 
 /** Full-screen cold-start loading screen — the animated liquid-gradient card centered on black,
  * matching the provided design's proportions (card ~77% width, ~29% height of the canvas). */
@@ -92,16 +103,16 @@ internal fun OnboardingFlow(
     var step by remember { mutableStateOf(OnboardingStep.Welcome) }
     Log.d("OnboardingFlow", "composing step=$step")
 
-    MaterialTheme {
+    MaterialTheme(typography = QuikLookTypography) {
         Surface(color = Color.Black, modifier = Modifier.fillMaxSize()) {
             when (step) {
                 OnboardingStep.Welcome -> WelcomeStep(
-                    onNext = { step = OnboardingStep.KeepPlacesSynced }
-                )
-                OnboardingStep.KeepPlacesSynced -> KeepPlacesSyncedStep(
                     onNext = { step = OnboardingStep.HowItWorks }
                 )
                 OnboardingStep.HowItWorks -> HowItWorksStep(
+                    onNext = { step = OnboardingStep.KeepPlacesSynced }
+                )
+                OnboardingStep.KeepPlacesSynced -> KeepPlacesSyncedStep(
                     signedInUser = signedInUser,
                     onSignIn = onSignIn,
                     signInError = signInError,
@@ -110,13 +121,10 @@ internal fun OnboardingFlow(
                 OnboardingStep.Permission -> PermissionStep(
                     hasLocationPermission = hasLocationPermission,
                     onRequestLocationPermission = onRequestLocationPermission,
-                    onNext = { step = OnboardingStep.HomeLocation }
+                    onNext = { step = OnboardingStep.Profile }
                 )
-                OnboardingStep.HomeLocation -> HomeLocationStep(
-                    homeDestination = homeDestination,
-                    onOpenDestinationPicker = onOpenDestinationPicker,
-                    placesAvailable = placesAvailable,
-                    destinationPickerError = destinationPickerError,
+                OnboardingStep.Profile -> ProfileStep(
+                    signedInUser = signedInUser,
                     onFinish = onFinish
                 )
             }
@@ -207,23 +215,7 @@ private fun WelcomeStep(onNext: () -> Unit) {
 }
 
 @Composable
-private fun KeepPlacesSyncedStep(onNext: () -> Unit) {
-    CenteredIntroStep(
-        title = "Keep places\nsynced",
-        body = "Save your home location, workspaces, and recent custom places securely across your devices.",
-        ctaLabel = "Get Started",
-        glowColor = Color(0xFF8BEF95),
-        glowX = 0.45f,
-        glowY = 1.05f,
-        onNext = onNext
-    )
-}
-
-@Composable
 private fun HowItWorksStep(
-    signedInUser: SignedInUser?,
-    onSignIn: () -> Unit,
-    signInError: String?,
     onNext: () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -251,11 +243,51 @@ private fun HowItWorksStep(
                 lineHeight = 20.sp
             )
             Spacer(Modifier.height(36.dp))
-            HowItWorksRow("🔍", "The app notes when you leave your home radius or start traveling.")
+            HowItWorksRow(Iconsax.Outline.Routing, "Detect travel", "The app notes when you leave your home radius or start traveling.")
             Spacer(Modifier.height(20.dp))
-            HowItWorksRow("⏱", "Select your target destination or set a quick exit countdown timer.")
+            HowItWorksRow(Iconsax.Outline.Timer, "Pick destination or timer", "Select your target destination or set a quick exit countdown timer.")
             Spacer(Modifier.height(20.dp))
-            HowItWorksRow("📋", "Get a peaceful checklist ping to make sure you have your keys, bag, and wallet.")
+            HowItWorksRow(Iconsax.Outline.TickCircle, "Check items on exit", "Get a peaceful checklist ping to make sure you have your keys, bag, and wallet.")
+            Spacer(Modifier.height(42.dp))
+            LimeButton("Continue", onNext, Modifier.fillMaxWidth())
+        }
+    }
+}
+
+@Composable
+private fun KeepPlacesSyncedStep(
+    signedInUser: SignedInUser?,
+    onSignIn: () -> Unit,
+    signInError: String?,
+    onNext: () -> Unit
+) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        CornerGlow(Color(0xFFFF69B2), 0.45f, 1.05f, alpha = 0.32f)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 32.dp, vertical = 40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(Modifier.height(190.dp))
+            Text(
+                "Keep places synced",
+                color = Color.White,
+                fontFamily = TitleFontFamily,
+                fontSize = 30.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(14.dp))
+            Text(
+                "Save your home location, workspaces, and recent custom places securely across your devices.",
+                color = MutedText,
+                fontFamily = BodyFontFamily,
+                fontSize = 14.sp,
+                lineHeight = 20.sp,
+                textAlign = TextAlign.Center
+            )
             if (signedInUser != null) {
                 Spacer(Modifier.height(24.dp))
                 Text(
@@ -266,7 +298,7 @@ private fun HowItWorksStep(
                 )
             } else if (signInError != null) {
                 Spacer(Modifier.height(20.dp))
-                Text(signInError, color = Color(0xFFFF8A80), fontFamily = BodyFontFamily, fontSize = 13.sp)
+                Text(signInError, color = Color(0xFFFF3964), fontFamily = BodyFontFamily, fontSize = 13.sp)
             }
             Spacer(Modifier.height(40.dp))
             LimeButton(
@@ -285,28 +317,25 @@ private fun HowItWorksStep(
 }
 
 @Composable
-private fun HowItWorksRow(glyph: String, body: String) {
+private fun HowItWorksRow(icon: ImageVector, title: String, body: String) {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
         Box(
             modifier = Modifier
                 .size(40.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(
-                    Brush.linearGradient(listOf(Color(0xFFFF69B2), Color(0xFFC9257E)))
+                    Brush.linearGradient(listOf(Color(0xFFFF69B2), Color(0xFF540028)))
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Text(glyph, fontSize = 17.sp)
+            Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
         }
         Spacer(Modifier.width(14.dp))
-        Text(
-            body,
-            color = MutedText,
-            fontFamily = BodyFontFamily,
-            fontSize = 14.sp,
-            lineHeight = 20.sp,
-            modifier = Modifier.padding(top = 2.dp)
-        )
+        Column {
+            Text(title, color = Color.White, fontFamily = TitleFontFamily, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(3.dp))
+            Text(body, color = MutedText, fontFamily = BodyFontFamily, fontSize = 14.sp, lineHeight = 20.sp)
+        }
     }
 }
 
@@ -397,10 +426,10 @@ private fun PermissionStep(
                 modifier = Modifier
                     .size(26.dp)
                     .clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(Color(0xFFFF69B2), Color(0xFFC9257E)))),
+                    .background(Brush.linearGradient(listOf(Color(0xFFEB0052), Color(0xFF8E0132)))),
                 contentAlignment = Alignment.Center
             ) {
-                Text("🛡", fontSize = 12.sp)
+                Icon(Iconsax.Outline.Shield, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
             }
             Spacer(Modifier.width(10.dp))
             Text("Calm & Private", color = Color.White, fontFamily = TitleFontFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold)
@@ -422,6 +451,55 @@ private fun PermissionStep(
         Spacer(Modifier.height(8.dp))
         TextButton(onClick = onNext, modifier = Modifier.fillMaxWidth()) {
             Text("May be later", color = DimText, fontFamily = BodyFontFamily, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+private fun ProfileStep(
+    signedInUser: SignedInUser?,
+    onFinish: () -> Unit
+) {
+    var name by remember { mutableStateOf(signedInUser?.displayName.orEmpty()) }
+    var age by remember { mutableStateOf("") }
+    var gender by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color.White,
+        unfocusedTextColor = Color.White,
+        focusedBorderColor = Lime,
+        unfocusedBorderColor = Color(0xFF6E6D66),
+        focusedLabelColor = Lime,
+        unfocusedLabelColor = MutedText,
+        cursorColor = Lime
+    )
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        CornerGlow(Color(0xFF2B8CFF), 0.85f, -0.08f, alpha = 0.30f)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 28.dp, vertical = 44.dp)
+        ) {
+            Spacer(Modifier.height(70.dp))
+            Text("Set up your profile.", color = Color.White, fontFamily = TitleFontFamily, fontSize = 32.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            Text("Tell us a bit about yourself.", color = MutedText, fontFamily = BodyFontFamily, fontSize = 14.sp)
+            Spacer(Modifier.height(32.dp))
+            OutlinedTextField(name, { name = it }, label = { Text("Name") }, singleLine = true, colors = fieldColors, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(age, { age = it.filter(Char::isDigit).take(3) }, label = { Text("Age") }, singleLine = true, colors = fieldColors, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(gender, { gender = it }, label = { Text("Gender") }, singleLine = true, colors = fieldColors, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(phone, { phone = it }, label = { Text("Phone number (optional)") }, singleLine = true, colors = fieldColors, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(34.dp))
+            LimeButton("Continue", onFinish, Modifier.fillMaxWidth())
+            Spacer(Modifier.height(8.dp))
+            TextButton(onClick = onFinish, modifier = Modifier.fillMaxWidth()) {
+                Text("Skip for now", color = DimText, fontFamily = BodyFontFamily, fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
@@ -470,7 +548,7 @@ private fun HomeLocationStep(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF14171A), RoundedCornerShape(28.dp))
+                    .background(Color(0xFF040B19), RoundedCornerShape(24.dp))
                     .padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -478,7 +556,7 @@ private fun HomeLocationStep(
                     modifier = Modifier.size(34.dp).clip(CircleShape).background(Lime),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("🏠", fontSize = 15.sp)
+                    Icon(Iconsax.Outline.Home, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
                 }
                 Spacer(Modifier.width(12.dp))
                 Column {
@@ -503,7 +581,7 @@ private fun HomeLocationStep(
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("🔍", fontSize = 15.sp)
+            Icon(Iconsax.Outline.SearchNormal, contentDescription = null, tint = Color(0xFF6E6D66), modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(10.dp))
             Text(
                 if (homeDestination != null) "Change address..." else "Search address...",
@@ -514,7 +592,7 @@ private fun HomeLocationStep(
         }
         destinationPickerError?.let {
             Spacer(Modifier.height(10.dp))
-            Text(it, color = Color(0xFFFF8A80), fontFamily = BodyFontFamily, fontSize = 13.sp)
+            Text(it, color = Color(0xFFFF3964), fontFamily = BodyFontFamily, fontSize = 13.sp)
         }
         Spacer(Modifier.height(36.dp))
         LimeButton(

@@ -17,6 +17,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,7 +36,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -48,6 +52,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -71,16 +77,45 @@ import com.google.android.libraries.places.widget.PlaceAutocompleteActivity
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import io.github.rabehx.iconsax.Iconsax
+import io.github.rabehx.iconsax.outline.SearchNormal
+import io.github.rabehx.iconsax.outline.Add
+import io.github.rabehx.iconsax.outline.Bag
+import io.github.rabehx.iconsax.outline.Building
+import io.github.rabehx.iconsax.outline.Headphone
+import io.github.rabehx.iconsax.outline.Home
+import io.github.rabehx.iconsax.outline.Key
+import io.github.rabehx.iconsax.outline.Mobile
+import io.github.rabehx.iconsax.outline.Monitor
+import io.github.rabehx.iconsax.outline.Setting2
+import io.github.rabehx.iconsax.outline.Wallet
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private val Canvas = Color(0xFFF8F7F2)
-private val Ink = Color(0xFF171714)
+private val Canvas = Color.Black
+private val Ink = Color.White
 private val Accent = Color(0xFFDBFF45)
-private val Muted = Color(0xFF6E6D66)
+private val Muted = Color(0xFFB5C0C6)
+private val Card = Color(0xFF040B19)
+private val DeepInk = Color.Black
+
+@Composable
+private fun quikLookFieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = Ink,
+    unfocusedTextColor = Ink,
+    focusedContainerColor = Card,
+    unfocusedContainerColor = Card,
+    focusedBorderColor = Accent,
+    unfocusedBorderColor = Color(0xFF6E6D66),
+    focusedLabelColor = Accent,
+    unfocusedLabelColor = Muted,
+    cursorColor = Accent,
+    focusedPlaceholderColor = Muted,
+    unfocusedPlaceholderColor = Muted
+)
 
 private sealed interface LocationUiState {
     data object PermissionNeeded : LocationUiState
@@ -741,11 +776,16 @@ private fun LastStopApp(
         }
     }
 
-    MaterialTheme {
+    MaterialTheme(typography = QuikLookTypography) {
         Surface(color = Canvas, modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color(0xFF040B19), Color.Black, Color(0xFF540028))
+                        )
+                    )
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 24.dp, vertical = 28.dp)
             ) {
@@ -753,6 +793,8 @@ private fun LastStopApp(
                     Text("QUIKLOOK", color = Muted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     if (!journeyActive) {
                         TextButton(onClick = { onChangeScreen(UiScreen.Settings) }) {
+                            Icon(Iconsax.Outline.Setting2, contentDescription = null, tint = Muted, modifier = Modifier.height(18.dp).width(18.dp))
+                            Spacer(Modifier.width(6.dp))
                             Text("Settings", color = Muted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                     }
@@ -763,16 +805,16 @@ private fun LastStopApp(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color(0xFFFFE8E5), RoundedCornerShape(18.dp))
+                            .background(Color(0xFF680F0F), RoundedCornerShape(24.dp))
                             .padding(18.dp)
                     ) {
-                        Text("LOCATION IS OFF", color = Color(0xFF8C1D18), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("LOCATION IS OFF", color = Color(0xFFFF3964), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(5.dp))
-                        Text("Turn on Location so LastStop can notice when you're traveling.", color = Ink, fontSize = 15.sp)
+                        Text("Turn on Location so QuikLook can notice when you're traveling.", color = Ink, fontSize = 15.sp)
                         Spacer(Modifier.height(10.dp))
                         Button(
                             onClick = onOpenLocationSettings,
-                            colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White)
+                            colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = DeepInk)
                         ) { Text("Turn on location", fontWeight = FontWeight.Bold) }
                     }
                     Spacer(Modifier.height(18.dp))
@@ -782,20 +824,20 @@ private fun LastStopApp(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color(0xFFFFF3D6), RoundedCornerShape(18.dp))
+                            .background(Color(0xFF27422A), RoundedCornerShape(24.dp))
                             .padding(18.dp)
                     ) {
-                        Text("BATTERY OPTIMIZATION IS ON", color = Color(0xFF8C5A00), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("BATTERY OPTIMIZATION IS ON", color = Color(0xFF8BEF95), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(5.dp))
                         Text(
-                            "Your phone may stop LastStop's background watcher to save power. Allow it to run unrestricted so travel detection keeps working.",
+                            "Your phone may stop QuikLook's background watcher to save power. Allow it to run unrestricted so travel detection keeps working.",
                             color = Ink,
                             fontSize = 15.sp
                         )
                         Spacer(Modifier.height(10.dp))
                         Button(
                             onClick = onRequestIgnoreBatteryOptimizations,
-                            colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White)
+                            colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = DeepInk)
                         ) { Text("Allow background activity", fontWeight = FontWeight.Bold) }
                     }
                     Spacer(Modifier.height(18.dp))
@@ -871,20 +913,108 @@ private fun LastStopApp(
 
 @Composable
 private fun IdleScreen(onStartNow: () -> Unit) {
-    Text("Check before\nyou arrive.", color = Ink, fontSize = 42.sp, lineHeight = 45.sp, fontWeight = FontWeight.Black)
-    Spacer(Modifier.height(24.dp))
-    Column(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(24.dp)).padding(22.dp)) {
-        Text("QUIKLOOK IS WATCHING", color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(10.dp))
-        Text(
-            "No need to open the app. As soon as quiklook notices you're on the move, it will prompt you to set up this trip.",
-            color = Ink,
-            fontSize = 16.sp
-        )
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Card, RoundedCornerShape(24.dp))
+            .padding(18.dp)
+    ) {
+        Text("Are you traveling?", color = Color.White, fontFamily = TitleFontFamily, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(5.dp))
+        Text("Set active reminders for your next destination.", color = Color(0xFFB5C0C6), fontFamily = BodyFontFamily, fontSize = 13.sp)
+        Spacer(Modifier.height(16.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Button(
+                onClick = onStartNow,
+                shape = RoundedCornerShape(50),
+                colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = DeepInk),
+                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 0.dp),
+                modifier = Modifier.height(40.dp)
+            ) { Text("Yes, set trip", fontWeight = FontWeight.Black) }
+            TextButton(onClick = {}, modifier = Modifier.height(40.dp)) {
+                Text("Not now", color = Color(0xFFB5C0C6), fontWeight = FontWeight.Bold)
+            }
+        }
     }
-    Spacer(Modifier.height(18.dp))
-    TextButton(onClick = onStartNow, modifier = Modifier.fillMaxWidth()) {
-        Text("Or set up a trip now", color = Muted, fontWeight = FontWeight.Bold)
+
+    Spacer(Modifier.height(16.dp))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Card, RoundedCornerShape(50))
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        DashboardTab("Destination", true, onStartNow, Modifier.weight(1f))
+        DashboardTab("Timer", false, onStartNow, Modifier.weight(1f))
+    }
+    Spacer(Modifier.height(12.dp))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Card, RoundedCornerShape(18.dp))
+            .clickable(onClick = onStartNow)
+            .padding(horizontal = 16.dp, vertical = 15.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(Iconsax.Outline.SearchNormal, contentDescription = null, tint = Muted, modifier = Modifier.height(20.dp).width(20.dp))
+        Spacer(Modifier.width(10.dp))
+        Text("Where are you going?", color = Muted, fontFamily = BodyFontFamily, fontSize = 14.sp)
+    }
+    Spacer(Modifier.height(12.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        DashboardChip("Home", onStartNow, icon = Iconsax.Outline.Home)
+        DashboardChip("Office", onStartNow, icon = Iconsax.Outline.Building)
+        DashboardChip("Add place", onStartNow, icon = Iconsax.Outline.Add)
+    }
+    Spacer(Modifier.height(22.dp))
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text("BELONGINGS", color = Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        Text("Edit list", color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(onClick = onStartNow))
+    }
+    Spacer(Modifier.height(10.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        DashboardChip("Bag", onStartNow, selected = true, icon = Iconsax.Outline.Bag)
+        DashboardChip("Phone", onStartNow, selected = true, icon = Iconsax.Outline.Mobile)
+        DashboardChip("Wallet", onStartNow, selected = true, icon = Iconsax.Outline.Wallet)
+    }
+    Spacer(Modifier.height(8.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        DashboardChip("Laptop", onStartNow, icon = Iconsax.Outline.Monitor)
+        DashboardChip("Keys", onStartNow, selected = true, icon = Iconsax.Outline.Key)
+        DashboardChip("Earbuds", onStartNow, icon = Iconsax.Outline.Headphone)
+    }
+}
+
+@Composable
+private fun DashboardTab(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Text(
+        label,
+        color = if (selected) DeepInk else Muted,
+        fontWeight = FontWeight.Bold,
+        fontSize = 13.sp,
+        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        modifier = modifier
+            .background(if (selected) Accent else Color.Transparent, RoundedCornerShape(50))
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp)
+    )
+}
+
+@Composable
+private fun DashboardChip(label: String, onClick: () -> Unit, selected: Boolean = false, icon: ImageVector? = null) {
+    Row(
+        modifier = Modifier
+            .background(if (selected) Accent else Card, RoundedCornerShape(50))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        icon?.let {
+            Icon(it, contentDescription = null, tint = if (selected) DeepInk else Ink, modifier = Modifier.size(16.dp))
+        }
+        Text(label, color = if (selected) DeepInk else Ink, fontSize = 12.sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -909,58 +1039,58 @@ private fun SettingsScreen(
     Text("Settings", color = Ink, fontSize = 38.sp, fontWeight = FontWeight.Black)
     Spacer(Modifier.height(20.dp))
 
-    Column(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(20.dp)).padding(20.dp)) {
+    Column(modifier = Modifier.fillMaxWidth().background(Card, RoundedCornerShape(24.dp)).padding(20.dp)) {
         Text("ACCOUNT", color = Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(10.dp))
         if (signedInUser != null) {
             Text(signedInUser.displayName, color = Ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Text(signedInUser.email, color = Muted, fontSize = 13.sp)
             Spacer(Modifier.height(12.dp))
-            TextButton(onClick = onSignOut) { Text("Sign out", color = Color(0xFFB3261E), fontWeight = FontWeight.Bold) }
+            TextButton(onClick = onSignOut) { Text("Sign out", color = Color(0xFFFF3964), fontWeight = FontWeight.Bold) }
         } else {
             Text("Not signed in", color = Ink, fontSize = 16.sp)
             signInError?.let {
                 Spacer(Modifier.height(6.dp))
-                Text(it, color = Color(0xFFB3261E), fontSize = 13.sp)
+                Text(it, color = Color(0xFFFF3964), fontSize = 13.sp)
             }
             Spacer(Modifier.height(12.dp))
             Button(
                 onClick = onSignIn,
                 modifier = Modifier.fillMaxWidth().height(50.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White)
+                shape = RoundedCornerShape(25.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = DeepInk)
             ) { Text("Sign in with Google", fontWeight = FontWeight.Bold) }
         }
     }
     Spacer(Modifier.height(16.dp))
 
-    Column(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(20.dp)).padding(20.dp)) {
+    Column(modifier = Modifier.fillMaxWidth().background(Card, RoundedCornerShape(24.dp)).padding(20.dp)) {
         Text("HOME LOCATION", color = Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(10.dp))
         Text(homeDestination?.name ?: "Not set", color = Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         destinationPickerError?.let {
             Spacer(Modifier.height(6.dp))
-            Text(it, color = Color(0xFFB3261E), fontSize = 13.sp)
+            Text(it, color = Color(0xFFFF3964), fontSize = 13.sp)
         }
         Spacer(Modifier.height(12.dp))
         Button(
             onClick = onOpenHomeLocationPicker,
             enabled = placesAvailable,
             modifier = Modifier.fillMaxWidth().height(50.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White)
+            shape = RoundedCornerShape(25.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = DeepInk)
         ) { Text(if (homeDestination != null) "Change home address" else "Set home address", fontWeight = FontWeight.Bold) }
     }
     Spacer(Modifier.height(16.dp))
 
-    Column(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(20.dp)).padding(20.dp)) {
+    Column(modifier = Modifier.fillMaxWidth().background(Card, RoundedCornerShape(24.dp)).padding(20.dp)) {
         Text("PERMISSIONS", color = Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(10.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("Location access", color = Ink, fontSize = 15.sp)
             Text(
                 if (hasLocationPermission) "Granted" else "Not granted",
-                color = if (hasLocationPermission) Color(0xFF2E7D32) else Color(0xFFB3261E),
+                color = if (hasLocationPermission) Color(0xFF8BEF95) else Color(0xFFFF3964),
                 fontWeight = FontWeight.Bold,
                 fontSize = 13.sp
             )
@@ -970,8 +1100,8 @@ private fun SettingsScreen(
             Button(
                 onClick = onOpenAppSettings,
                 modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White)
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = DeepInk)
             ) { Text("Open app settings", fontWeight = FontWeight.Bold) }
         }
         if (!systemLocationEnabled) {
@@ -979,8 +1109,8 @@ private fun SettingsScreen(
             Button(
                 onClick = onOpenLocationSettings,
                 modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White)
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = DeepInk)
             ) { Text("Turn on location", fontWeight = FontWeight.Bold) }
         }
         if (!batteryOptimizationIgnored) {
@@ -988,8 +1118,8 @@ private fun SettingsScreen(
             Button(
                 onClick = onRequestIgnoreBatteryOptimizations,
                 modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White)
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = DeepInk)
             ) { Text("Allow background activity", fontWeight = FontWeight.Bold) }
         }
     }
@@ -1038,7 +1168,12 @@ private fun JourneyScreen(
         label = { Text("Add an item") },
         placeholder = { Text("e.g. Charger") },
         singleLine = true,
+        shape = RoundedCornerShape(18.dp),
+        colors = quikLookFieldColors(),
         modifier = Modifier.fillMaxWidth(),
+        leadingIcon = {
+            Icon(Iconsax.Outline.SearchNormal, contentDescription = null, tint = Muted, modifier = Modifier.size(20.dp))
+        },
         trailingIcon = {
             TextButton(onClick = {
                 val trimmed = query.trim()
@@ -1055,7 +1190,7 @@ private fun JourneyScreen(
     }
     if (suggestions.isNotEmpty()) {
         Spacer(Modifier.height(6.dp))
-        Column(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(16.dp))) {
+        Column(modifier = Modifier.fillMaxWidth().background(Card, RoundedCornerShape(24.dp))) {
             suggestions.take(5).forEach { suggestion ->
                 TextButton(
                     onClick = { onToggleItem(suggestion); query = "" },
@@ -1085,7 +1220,7 @@ private fun JourneyScreen(
             ) {
                 Text(item, color = Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 TextButton(onClick = { onRemoveItem(item) }) {
-                    Text("Remove", color = Color(0xFFB3261E), fontWeight = FontWeight.Bold)
+                    Text("Remove", color = Color(0xFFFF3964), fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -1134,7 +1269,7 @@ private fun JourneyScreen(
         }
         Spacer(Modifier.height(14.dp))
         Column(
-            modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(14.dp)).padding(vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth().background(Card, RoundedCornerShape(24.dp)).padding(vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text("ARRIVING AROUND", color = Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
@@ -1146,8 +1281,8 @@ private fun JourneyScreen(
             onClick = { onStartTimer(effectiveMinutes) },
             enabled = effectiveMinutes > 0,
             modifier = Modifier.fillMaxWidth().height(60.dp),
-            shape = RoundedCornerShape(18.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White)
+            shape = RoundedCornerShape(32.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = DeepInk)
         ) { Text("Start journey", fontSize = 18.sp, fontWeight = FontWeight.Bold) }
     } else {
         DestinationSetup(
@@ -1173,8 +1308,8 @@ private fun JourneyScreen(
             Button(
                 onClick = { onStartToDestination(pickedDestination) },
                 modifier = Modifier.fillMaxWidth().height(60.dp),
-                shape = RoundedCornerShape(18.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White)
+                shape = RoundedCornerShape(32.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = DeepInk)
             ) { Text("Start journey", fontSize = 18.sp, fontWeight = FontWeight.Bold) }
         }
     }
@@ -1193,7 +1328,7 @@ private fun TimeStepper(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier.background(Color.White, RoundedCornerShape(18.dp)).padding(vertical = 14.dp),
+        modifier = modifier.background(Card, RoundedCornerShape(18.dp)).padding(vertical = 14.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(label, color = Muted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
@@ -1220,8 +1355,8 @@ private fun StepperGlyph(symbol: String, enabled: Boolean, onClick: () -> Unit) 
         shape = RoundedCornerShape(50),
         colors = ButtonDefaults.buttonColors(
             containerColor = Accent,
-            contentColor = Ink,
-            disabledContainerColor = Color(0xFFE4E3DC),
+            contentColor = DeepInk,
+            disabledContainerColor = Color(0xFF040B19),
             disabledContentColor = Muted
         )
     ) { Text(symbol, fontSize = 16.sp, fontWeight = FontWeight.Black) }
@@ -1232,10 +1367,10 @@ private fun ChoiceButton(label: String, selected: Boolean, onClick: () -> Unit, 
     Button(
         onClick = onClick,
         modifier = modifier.height(48.dp),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (selected) Accent else Color.White,
-            contentColor = Ink
+            containerColor = if (selected) Accent else Card,
+            contentColor = if (selected) DeepInk else Ink
         )
     ) { Text(label, fontWeight = FontWeight.Bold) }
 }
@@ -1290,11 +1425,11 @@ private fun ActiveJourneyScreen(
             onClick = onStop,
             enabled = selectedItems.isEmpty() || checkedItems.containsAll(selectedItems),
             modifier = Modifier.fillMaxWidth().height(60.dp),
-            shape = RoundedCornerShape(18.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White)
+            shape = RoundedCornerShape(32.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = DeepInk)
         ) { Text("All checked — finish", fontWeight = FontWeight.Bold) }
     } else {
-        Column(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(24.dp)).padding(22.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().background(Card, RoundedCornerShape(24.dp)).padding(22.dp)) {
             when (target) {
                 is ActiveTarget.ToDestination -> {
                     Text("HEADING TO", color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -1318,7 +1453,7 @@ private fun ActiveJourneyScreen(
                 if (target is ActiveTarget.ToDestination) {
                     "Arrival time uses live traffic data. You'll be alerted at 5 min, 1 min, and on arrival."
                 } else {
-                    "Tracking continues when LastStop is minimized. You'll be alerted at 5 min, 1 min, and on arrival."
+                    "Tracking continues when QuikLook is minimized. You'll be alerted at 5 min, 1 min, and on arrival."
                 },
                 color = Muted,
                 fontSize = 13.sp
@@ -1326,7 +1461,7 @@ private fun ActiveJourneyScreen(
         }
         Spacer(Modifier.height(18.dp))
         Button(onClick = onEnterExitMode, modifier = Modifier.fillMaxWidth().height(58.dp),
-            shape = RoundedCornerShape(18.dp), colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = Ink)) {
+            shape = RoundedCornerShape(32.dp), colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = DeepInk)) {
             Text("Enter Exit Mode", fontSize = 17.sp, fontWeight = FontWeight.Black)
         }
         Spacer(Modifier.height(10.dp))
@@ -1355,7 +1490,7 @@ private fun SavePlaceRow(
     onAddSavedPlace: (String, Destination) -> Unit
 ) {
     var customLabel by remember { mutableStateOf("") }
-    Column(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(16.dp)).padding(16.dp)) {
+    Column(modifier = Modifier.fillMaxWidth().background(Card, RoundedCornerShape(24.dp)).padding(16.dp)) {
         Text("SAVE THIS PLACE", color = Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(10.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1377,6 +1512,8 @@ private fun SavePlaceRow(
                 label = { Text("Custom label") },
                 placeholder = { Text("e.g. Gym") },
                 singleLine = true,
+                shape = RoundedCornerShape(18.dp),
+                colors = quikLookFieldColors(),
                 modifier = Modifier.weight(1f)
             )
             TextButton(onClick = {
@@ -1410,7 +1547,7 @@ private fun DestinationSetup(
     var error by remember { mutableStateOf<String?>(null) }
 
     Column(
-        modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(24.dp)).padding(22.dp)
+        modifier = Modifier.fillMaxWidth().background(Card, RoundedCornerShape(24.dp)).padding(22.dp)
     ) {
         Text("DESTINATION", color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(12.dp))
@@ -1436,7 +1573,7 @@ private fun DestinationSetup(
                             Text(saved.destination.name, color = Muted, fontSize = 11.sp)
                         }
                         TextButton(onClick = { onRemoveSavedPlace(saved.label) }) {
-                            Text("Remove", color = Color(0xFFB3261E), fontWeight = FontWeight.Bold)
+                            Text("Remove", color = Color(0xFFFF3964), fontWeight = FontWeight.Bold)
                         }
                     }
                 } else {
@@ -1476,8 +1613,8 @@ private fun DestinationSetup(
             onClick = onOpenGooglePicker,
             enabled = placesAvailable,
             modifier = Modifier.fillMaxWidth().height(56.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White)
+            shape = RoundedCornerShape(28.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = DeepInk)
         ) {
             Text(
                 if (placesAvailable) "Choose destination" else "Google Places unavailable",
@@ -1486,10 +1623,10 @@ private fun DestinationSetup(
             )
         }
         Spacer(Modifier.height(10.dp))
-        Text("Search powered by Google without leaving LastStop", color = Muted, fontSize = 12.sp)
+        Text("Search powered by Google without leaving QuikLook", color = Muted, fontSize = 12.sp)
         destinationPickerError?.let {
             Spacer(Modifier.height(10.dp))
-            Text(it, color = Color(0xFFB3261E), fontSize = 13.sp)
+            Text(it, color = Color(0xFFFF3964), fontSize = 13.sp)
         }
         Spacer(Modifier.height(8.dp))
         TextButton(onClick = { showCoordinates = !showCoordinates }) {
@@ -1503,6 +1640,8 @@ private fun DestinationSetup(
                 label = { Text("Name") },
                 placeholder = { Text("Office, airport, station") },
                 singleLine = true,
+                shape = RoundedCornerShape(18.dp),
+                colors = quikLookFieldColors(),
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(10.dp))
@@ -1513,6 +1652,8 @@ private fun DestinationSetup(
                 placeholder = { Text("12.9716") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 singleLine = true,
+                shape = RoundedCornerShape(18.dp),
+                colors = quikLookFieldColors(),
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(10.dp))
@@ -1523,11 +1664,13 @@ private fun DestinationSetup(
                 placeholder = { Text("77.5946") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 singleLine = true,
+                shape = RoundedCornerShape(18.dp),
+                colors = quikLookFieldColors(),
                 modifier = Modifier.fillMaxWidth()
             )
             error?.let {
                 Spacer(Modifier.height(8.dp))
-                Text(it, color = Color(0xFFB3261E), fontSize = 14.sp)
+                Text(it, color = Color(0xFFFF3964), fontSize = 14.sp)
             }
             Spacer(Modifier.height(16.dp))
             Button(
@@ -1544,8 +1687,8 @@ private fun DestinationSetup(
                     if (error == null) onSave(Destination(name.trim(), lat!!, lon!!))
                 },
                 modifier = Modifier.fillMaxWidth().height(54.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White)
+                shape = RoundedCornerShape(27.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = DeepInk)
             ) {
                 Text("Use coordinates", fontWeight = FontWeight.Bold)
             }
