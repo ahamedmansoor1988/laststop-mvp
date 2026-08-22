@@ -1486,7 +1486,7 @@ private fun TimerFace(totalSeconds: Long, remainingSeconds: Long, modifier: Modi
             .fillMaxWidth()
             .aspectRatio(1f)
             .clip(RoundedCornerShape(percent = 18))
-            .background(Brush.radialGradient(listOf(Color(0xFF072766), Color(0xFF2B8CFF)))),
+            .heroGradient(Color(0xFF072766), Color(0xFF2B8CFF), 0.5f, 0.601f, 0.528f, glowAlpha = 0.65f),
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -1850,7 +1850,10 @@ private fun Modifier.heroGradient(
     light: Color,
     centerYFraction: Float,
     radiusXFraction: Float,
-    radiusYFraction: Float
+    radiusYFraction: Float,
+    // The sources erode the alpha by different amounts before blurring - 5 on the green cards,
+    // 25 on the blue timer - so the timer's inner glow lands noticeably stronger.
+    glowAlpha: Float = 0.5f
 ): Modifier = drawBehind {
     val cx = size.width * 0.5f
     val cy = size.height * centerYFraction
@@ -1883,7 +1886,7 @@ private fun Modifier.heroGradient(
             brush = Brush.radialGradient(
                 0.00f to Color.White.copy(alpha = 0f),
                 0.38f to Color.White.copy(alpha = 0f),
-                1.00f to Color.White.copy(alpha = 0.5f),
+                1.00f to Color.White.copy(alpha = glowAlpha),
                 center = gc,
                 radius = gx
             ),
