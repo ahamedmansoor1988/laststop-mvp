@@ -282,7 +282,11 @@ class JourneyTrackingService : Service() {
         }
         routeFetchInFlight = true
         serviceScope.launch {
-            val result = runCatching { requestRoute(origin, apiKey) }.getOrNull()
+            // Log the throwable rather than discarding it: a swallowed exception here is
+            // indistinguishable from "Google returned no route", and the two need different fixes.
+            val attempt = runCatching { requestRoute(origin, apiKey) }
+            attempt.exceptionOrNull()?.let { Log.d(TAG, "route request threw: ${it::class.java.simpleName}: ${it.message}") }
+            val result = attempt.getOrNull()
             routeFetchInFlight = false
             if (result != null) {
                 liveEtaSeconds = result.first
@@ -290,6 +294,15 @@ class JourneyTrackingService : Service() {
                 liveDistanceMeters = result.second
                 consecutiveFetchFailures = 0
                 Log.d(TAG, "live route fetched: etaSeconds=${result.first} distanceMeters=${result.second}")
+                // Apply it now instead of waiting for the next location fix. Standing still
+                // produces no fixes, so the route Google just returned would otherwise sit
+                // unused and the screen would keep showing the straight-line guess.
+                persistArrivalTime(result.first)
+                if (result.second >= 0f) {
+                    getSharedPreferences("laststop", MODE_PRIVATE).edit()
+                        .putFloat("eta_road_distance_meters", result.second).apply()
+                }
+                updateNotification(statusText(result.second.takeIf { it >= 0f }, result.first))
             } else {
                 consecutiveFetchFailures = (consecutiveFetchFailures + 1).coerceAtMost(5)
                 Log.d(TAG, "live route fetch failed or returned no route (failures=$consecutiveFetchFailures) — using fallback estimate")
@@ -308,15 +321,15 @@ class JourneyTrackingService : Service() {
         return if (decayed > 0f) decayed else null
     }
 
-    private fun requestRoute(origin: Location, apiKey: String): Pair<Float, Float>? {
-        val mode = routesTravelMode(travelMode)
+    private fun requestRoute(origin: Location, apiKey: String, forceMode: String? = null): Pair<Float, Float>? {
+        val mode = forceMode ?: routesTravelMode(travelMode)
         val body = JSONObject().apply {
             put("origin", JSONObject().put("location", JSONObject().put("latLng",
                 JSONObject().put("latitude", origin.latitude).put("longitude", origin.longitude))))
             put("destination", JSONObject().put("location", JSONObject().put("latLng",
                 JSONObject().put("latitude", destinationLatitude).put("longitude", destinationLongitude))))
             put("travelMode", mode)
-            if (mode == "DRIVE") put("routingPreference", "TRAFFIC_AWARE")
+            if (mode == "DRIVE" || mode == "TWO_WHEELER") put("routingPreference", "TRAFFIC_AWARE")
         }
         val request = Request.Builder()
             .url("https://routes.googleapis.com/directions/v2:computeRoutes")
@@ -329,9 +342,14 @@ class JourneyTrackingService : Service() {
                 Log.d(TAG, "Routes API HTTP ${response.code}: ${response.body?.string()}")
                 return null
             }
-            val json = JSONObject(response.body?.string() ?: return null)
-            val routes = json.optJSONArray("routes") ?: return null
-            if (routes.length() == 0) return null
+            val raw = response.body?.string() ?: return null
+            val json = JSONObject(raw)
+            val routes = json.optJSONArray("routes")
+            if (routes == null || routes.length() == 0) {
+                Log.d(TAG, "Routes API returned no route for travelMode=$mode: ${raw.take(300)}")
+                // A road-following estimate for the wrong vehicle still beats a straight line.
+                return if (mode != "DRIVE") requestRoute(origin, apiKey, forceMode = "DRIVE") else null
+            }
             val route = routes.getJSONObject(0)
             val seconds = route.optString("duration").removeSuffix("s").toFloatOrNull() ?: return null
             val distance = route.optDouble("distanceMeters", -1.0).toFloat()
@@ -339,9 +357,14 @@ class JourneyTrackingService : Service() {
         }
     }
 
+    /**
+     * Bike maps to TWO_WHEELER, not BICYCLE. Google returns no bicycle routes in India at all -
+     * an empty 200, which the app was quietly turning into a straight-line guess - and the
+     * supplied Bike artwork is a scooter, so a powered two-wheeler is the intended mode anyway.
+     */
     private fun routesTravelMode(mode: String): String = when (mode) {
         "Walk" -> "WALK"
-        "Bike" -> "BICYCLE"
+        "Bike" -> "TWO_WHEELER"
         "Car" -> "DRIVE"
         "Bus", "Train" -> "TRANSIT"
         else -> "DRIVE"

@@ -2072,7 +2072,18 @@ private fun ActiveJourneyScreen(
     } else null
     val prefs = context.getSharedPreferences("laststop", Context.MODE_PRIVATE)
     val arrivalAtEpochMs = remember(tick) { prefs.getLong("eta_arrival_at_epoch_ms", 0L) }
+    // Remaining has to come off the same Google arrival time the ETA card shows, or the two
+    // disagree. Previously this fell through to distance for destination trips, so the card
+    // read in kilometres while the design and the ETA beside it are both about time.
+    val secondsToArrival = remember(tick, arrivalAtEpochMs) {
+        arrivalAtEpochMs.takeIf { it > 0L }
+            ?.let { ((it - System.currentTimeMillis()) / 1000L).coerceAtLeast(0L) }
+    }
     val transport = remember(tick) { prefs.getString("travel_mode", "Bike") ?: "Bike" }
+    // Google's road distance, when we have it: a straight line reads short on any real route.
+    val roadDistance = remember(tick) {
+        prefs.getFloat("eta_road_distance_meters", -1f).takeIf { it >= 0f }
+    }
 
     if (exitMode) {
         ExitChecklist(
@@ -2099,6 +2110,7 @@ private fun ActiveJourneyScreen(
         Text("JOURNEY ACTIVE", color = Ink, fontFamily = TitleFontFamily, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
         Text(
             when {
+                roadDistance != null -> "${formatDistance(roadDistance)} left"
                 distance != null -> "${formatDistance(distance)} left"
                 remainingSeconds != null -> "${formatCountdown(remainingSeconds)} left"
                 else -> ""
@@ -2122,7 +2134,7 @@ private fun ActiveJourneyScreen(
             "Remaining",
             when {
                 remainingSeconds != null -> formatCountdown(remainingSeconds)
-                distance != null -> formatDistance(distance)
+                secondsToArrival != null -> formatRemaining(secondsToArrival)
                 else -> "—"
             },
             Modifier.weight(1f)
@@ -2332,6 +2344,16 @@ private fun formatDistance(meters: Float): String = if (meters >= 1_000f) {
     String.format(Locale.US, "%.1f km", meters / 1_000f)
 } else {
     "${meters.toInt()} m"
+}
+
+/** Coarse, human remaining time for a live route: "12 min", "1h 20m", "Arriving". */
+private fun formatRemaining(totalSeconds: Long): String {
+    val minutes = (totalSeconds + 30) / 60
+    return when {
+        minutes <= 0L -> "Arriving"
+        minutes < 60L -> "$minutes min"
+        else -> "${minutes / 60}h ${minutes % 60}m"
+    }
 }
 
 private fun formatCountdown(totalSeconds: Long): String {
