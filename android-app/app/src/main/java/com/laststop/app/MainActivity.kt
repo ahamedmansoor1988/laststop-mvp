@@ -1011,6 +1011,7 @@ private fun LastStopApp(
                         onStop = onStopJourney
                     )
                     uiScreen == UiScreen.Journey -> JourneyScreen(
+                        credits = credits,
                         catalog = belongingsCatalog,
                         selectedItems = selectedItems,
                         onToggleItem = { item ->
@@ -1389,6 +1390,7 @@ private fun StatusCard(
 
 @Composable
 private fun JourneyScreen(
+    credits: Int,
     catalog: List<String>,
     selectedItems: Set<String>,
     onToggleItem: (String) -> Unit,
@@ -1543,7 +1545,17 @@ private fun JourneyScreen(
         )
     }
 
-    Spacer(Modifier.height(30.dp))
+    Spacer(Modifier.height(26.dp))
+    // Shown next to the action that spends one, so the cost is visible at the point of paying it.
+    Text(
+        if (credits > 0) "$credits credits left · 1 per trip" else "No credits left",
+        color = if (credits > 0) Muted else QuikLook.Danger,
+        fontFamily = BodyFontFamily,
+        fontSize = 13.sp,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth()
+    )
+    Spacer(Modifier.height(10.dp))
     Button(
         onClick = { if (useDestination) pickedDestination?.let(onStartToDestination) else onStartTimer(minutes) },
         enabled = if (useDestination) pickedDestination != null else minutes > 0,
