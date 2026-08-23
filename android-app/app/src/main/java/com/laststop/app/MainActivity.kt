@@ -65,6 +65,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -150,6 +151,8 @@ private data class SavedPlace(val label: String, val destination: Destination)
 
 private enum class UiScreen { Idle, Journey, Settings }
 
+private const val FREE_CREDITS = 100
+
 private sealed interface JourneySelection {
     data class Timer(val minutes: Int) : JourneySelection
     data class ToDestination(val destination: Destination, val travelMode: String) : JourneySelection
@@ -183,6 +186,10 @@ class MainActivity : ComponentActivity() {
     private var onboardingComplete by mutableStateOf(true)
     private var signedInUser by mutableStateOf<SignedInUser?>(null)
     private var userProfile by mutableStateOf(UserProfile())
+    /** One credit is spent per trip started. New installs begin with a free allowance; paying
+     * to top up is not built yet, so running out currently just blocks new trips. */
+    private var credits by mutableIntStateOf(FREE_CREDITS)
+    private var creditsMessage by mutableStateOf<String?>(null)
     private var signInError by mutableStateOf<String?>(null)
     private var pickingHomeForOnboarding = false
     private var pickingSavedPlace = false
@@ -275,6 +282,8 @@ class MainActivity : ComponentActivity() {
         onboardingComplete = getSharedPreferences("laststop", MODE_PRIVATE).getBoolean("onboarding_complete", false)
         signedInUser = loadSignedInUser()
         userProfile = loadUserProfile()
+        credits = getSharedPreferences("laststop", MODE_PRIVATE).getInt("credits", FREE_CREDITS)
+        TravelReminderReceiver.schedule(this)
         refreshJourneyState()
         refreshSystemLocationState()
         refreshPermissionState()
@@ -308,6 +317,8 @@ class MainActivity : ComponentActivity() {
             } else {
             LastStopApp(
                 onExitApp = { finish() },
+                credits = credits,
+                creditsMessage = creditsMessage,
                 userProfile = userProfile,
                 locationState = locationState,
                 onPermissionResult = { granted ->
@@ -737,6 +748,11 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startJourney(selection: JourneySelection) {
+        if (credits <= 0) {
+            creditsMessage = "You have used all your trip credits. Top-ups are coming soon."
+            return
+        }
+        spendCredit()
         stopPassiveWatch()
         val intent = Intent(this, JourneyTrackingService::class.java).apply {
             action = JourneyTrackingService.ACTION_START
@@ -766,6 +782,12 @@ class MainActivity : ComponentActivity() {
         getSharedPreferences("laststop", MODE_PRIVATE).edit().putBoolean("journey_active", true).apply()
     }
 
+    private fun spendCredit() {
+        credits = (credits - 1).coerceAtLeast(0)
+        creditsMessage = null
+        getSharedPreferences("laststop", MODE_PRIVATE).edit().putInt("credits", credits).apply()
+    }
+
     private fun stopJourney() {
         startService(Intent(this, JourneyTrackingService::class.java).apply {
             action = JourneyTrackingService.ACTION_STOP
@@ -781,6 +803,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun LastStopApp(
     onExitApp: () -> Unit,
+    credits: Int,
+    creditsMessage: String?,
     userProfile: UserProfile,
     locationState: LocationUiState,
     onPermissionResult: (Boolean) -> Unit,
@@ -880,26 +904,36 @@ private fun LastStopApp(
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 24.dp, vertical = 28.dp)
             ) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    // Back sits where the wordmark used to; the avatar replaces the settings link.
                     if (uiScreen != UiScreen.Idle && !journeyActive) {
                         Icon(
                             painter = painterResource(R.drawable.ic_arrow_left),
                             contentDescription = "Back",
                             tint = Ink,
                             modifier = Modifier
-                                .size(30.dp)
+                                .size(34.dp)
                                 .clip(CircleShape)
                                 .clickable { onChangeScreen(UiScreen.Idle) }
-                                .padding(5.dp)
+                                .padding(6.dp)
                         )
-                        Spacer(Modifier.width(10.dp))
                     }
-                    Text("QUIKLOOK", color = Muted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.weight(1f))
                     if (!journeyActive) {
-                        TextButton(onClick = { onChangeScreen(UiScreen.Settings) }) {
-                            Icon(Iconsax.Outline.Setting2, contentDescription = null, tint = Muted, modifier = Modifier.height(18.dp).width(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Settings", color = Muted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(Accent)
+                                .clickable { onChangeScreen(UiScreen.Settings) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_user),
+                                contentDescription = "Your profile",
+                                tint = Ink,
+                                modifier = Modifier.size(18.dp)
+                            )
                         }
                     }
                 }
@@ -993,6 +1027,8 @@ private fun LastStopApp(
                     uiScreen == UiScreen.Settings -> SettingsScreen(
                         signedInUser = signedInUser,
                         userProfile = userProfile,
+                        credits = credits,
+                        onTopUp = { onChangeScreen(UiScreen.Settings) },
                         onSignIn = onSignIn,
                         onSignOut = onSignOut,
                         signInError = signInError,
@@ -1009,6 +1045,7 @@ private fun LastStopApp(
                         onBack = { onChangeScreen(UiScreen.Idle) }
                     )
                     else -> IdleScreen(
+                        creditsMessage = creditsMessage,
                         onDismiss = onExitApp,
                         catalog = belongingsCatalog,
                         selectedItems = selectedItems,
@@ -1033,6 +1070,7 @@ private fun LastStopApp(
 
 @Composable
 private fun IdleScreen(
+    creditsMessage: String?,
     onDismiss: () -> Unit,
     catalog: List<String>,
     selectedItems: Set<String>,
@@ -1040,6 +1078,19 @@ private fun IdleScreen(
     onAddItem: (String) -> Unit,
     onStartNow: () -> Unit
 ) {
+    creditsMessage?.let {
+        Text(
+            it,
+            color = QuikLook.Danger,
+            fontFamily = BodyFontFamily,
+            fontSize = 14.sp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFFFDE7EB), RoundedCornerShape(16.dp))
+                .padding(16.dp)
+        )
+        Spacer(Modifier.height(16.dp))
+    }
     CarrySelection(
         catalog = catalog,
         selectedItems = selectedItems,
@@ -1091,6 +1142,8 @@ private fun DashboardChip(label: String, onClick: () -> Unit, selected: Boolean 
 private fun SettingsScreen(
     signedInUser: SignedInUser?,
     userProfile: UserProfile,
+    credits: Int,
+    onTopUp: () -> Unit,
     onSignIn: () -> Unit,
     onSignOut: () -> Unit,
     signInError: String?,
@@ -1163,6 +1216,19 @@ private fun SettingsScreen(
     ProfileField(R.drawable.ic_profile_2user, userProfile.gender.ifBlank { "Gender not set" }, userProfile.gender.isBlank())
     Spacer(Modifier.height(8.dp))
     ProfileField(R.drawable.ic_call, userProfile.phone.ifBlank { "Phone not set" }, userProfile.phone.isBlank())
+
+    Spacer(Modifier.height(52.dp))
+    SettingsLabel("TRIP CREDITS")
+    Spacer(Modifier.height(14.dp))
+    StatusCard(
+        icon = R.drawable.ic_ticket_star,
+        title = if (credits > 0) "$credits credits left" else "No credits left",
+        subtitle = if (credits > 0) "One credit per trip you start" else "Top-ups are coming soon",
+        actionLabel = "Top up",
+        actionColor = Ink,
+        enabled = true,
+        onAction = onTopUp
+    )
 
     Spacer(Modifier.height(52.dp))
     SettingsLabel("HOME LOCATION")
@@ -2471,6 +2537,8 @@ private fun LastStopPreview() {
         onStartUpdates = {},
         onStopUpdates = {},
         onExitApp = {},
+        credits = 100,
+        creditsMessage = null,
         userProfile = UserProfile(),
         uiScreen = UiScreen.Idle,
         onChangeScreen = {},
