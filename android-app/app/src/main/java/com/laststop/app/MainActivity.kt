@@ -1255,9 +1255,9 @@ private fun SettingsScreen(
         icon = R.drawable.ic_ticket_star,
         title = if (credits > 0) "$credits credits left" else "No credits left",
         subtitle = if (credits > 0) "One credit per trip you start" else "Top-ups are coming soon",
-        actionLabel = "Top up",
+        actionLabel = "Coming soon",
         actionColor = Ink,
-        enabled = true,
+        enabled = false,
         onAction = onTopUp
     )
 
