@@ -40,14 +40,14 @@ val releaseSigningProps: Map<String, String> = run {
 
 android {
     namespace = "com.laststop.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.laststop.app"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
-        versionName = "0.1.0"
+        versionName = "1.0.0"
     }
 
     signingConfigs {

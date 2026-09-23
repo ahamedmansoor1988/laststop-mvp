@@ -221,7 +221,10 @@ class MainActivity : ComponentActivity() {
             val sessionToken = PlaceAutocomplete.getSessionTokenFromIntent(data)
             val request = FetchPlaceRequest.builder(
                 prediction.placeId,
-                listOf(Place.Field.DISPLAY_NAME, Place.Field.FORMATTED_ADDRESS, Place.Field.LOCATION)
+                // Keep the follow-up details call in the Essentials tier. The autocomplete
+                // prediction already contains the display label, so requesting DISPLAY_NAME
+                // would add a Pro-tier field without improving the destination UX.
+                listOf(Place.Field.FORMATTED_ADDRESS, Place.Field.LOCATION)
             ).setSessionToken(sessionToken).build()
             placesClient.fetchPlace(request)
                 .addOnSuccessListener { response ->
@@ -231,9 +234,9 @@ class MainActivity : ComponentActivity() {
                         destinationPickerError = "Google did not return coordinates for that place."
                         return@addOnSuccessListener
                     }
-                    val label = place.displayName?.takeIf { it.isNotBlank() }
+                    val label = prediction.getPrimaryText(null).toString().takeIf { it.isNotBlank() }
                         ?: place.formattedAddress?.takeIf { it.isNotBlank() }
-                        ?: prediction.getPrimaryText(null).toString()
+                        ?: "Destination"
                     destinationPickerError = null
                     val picked = Destination(label, location.latitude, location.longitude)
                     if (pickingHomeForOnboarding) {
@@ -488,7 +491,14 @@ class MainActivity : ComponentActivity() {
 
     private fun refreshSystemLocationState() {
         val manager = getSystemService(LocationManager::class.java)
-        systemLocationEnabled = manager?.isLocationEnabled == true
+        systemLocationEnabled = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            manager?.isLocationEnabled == true
+        } else {
+            manager?.let {
+                it.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+                    it.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+            } == true
+        }
     }
 
     private fun refreshBatteryOptimizationState() {
