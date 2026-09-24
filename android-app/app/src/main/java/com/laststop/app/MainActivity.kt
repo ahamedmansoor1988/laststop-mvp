@@ -1745,8 +1745,8 @@ private fun PresetChip(minutes: Int, selected: Boolean, onClick: () -> Unit, mod
 
 /**
  * Design 8. Geometry from the source: a 348x300 hero at 60 corner radius with both prompt pills
- * inside it, then chips that size to their own label — 39 tall at 11.5 radius, 9 apart across
- * and 17 down — flowing three or so to a row rather than stretching to a fixed grid.
+ * inside it, then equal-width two-column item chips. Keeping every chip on the same grid makes
+ * user-added and translated long names align predictably instead of shifting later rows.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -1795,15 +1795,30 @@ private fun CarrySelection(
     SectionLabel("Select what you carry")
     Spacer(Modifier.height(14.dp))
 
-    FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(9.dp),
-        verticalArrangement = Arrangement.spacedBy(17.dp)
-    ) {
-        catalog.forEach { item ->
-            CarryChip(item, item in selectedItems, { onToggleItem(item) })
+    val carryEntries: List<String?> = catalog.map { it } + listOf(null)
+    carryEntries.chunked(2).forEach { row ->
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(9.dp)
+        ) {
+            row.forEach { item ->
+                if (item == null) {
+                    AddItemChip(
+                        onClick = { adding = !adding },
+                        modifier = Modifier.weight(1f)
+                    )
+                } else {
+                    CarryChip(
+                        item = item,
+                        selected = item in selectedItems,
+                        onClick = { onToggleItem(item) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+            if (row.size == 1) Spacer(Modifier.weight(1f))
         }
-        AddItemChip(onClick = { adding = !adding })
+        Spacer(Modifier.height(12.dp))
     }
 
     if (adding) {
@@ -1855,9 +1870,9 @@ private fun PromptPill(label: String, filled: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun AddItemChip(onClick: () -> Unit) {
+private fun AddItemChip(onClick: () -> Unit, modifier: Modifier = Modifier) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .height(39.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(Card)
@@ -1872,9 +1887,14 @@ private fun AddItemChip(onClick: () -> Unit) {
 }
 
 @Composable
-private fun CarryChip(item: String, selected: Boolean, onClick: () -> Unit) {
+private fun CarryChip(
+    item: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .height(39.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(if (selected) Ink else QuikLook.Surface)
@@ -1884,7 +1904,14 @@ private fun CarryChip(item: String, selected: Boolean, onClick: () -> Unit) {
     ) {
         Icon(painterResource(belongingIcon(item)), null, tint = if (selected) Accent else Ink, modifier = Modifier.size(17.dp))
         Spacer(Modifier.width(8.dp))
-        Text(item, color = if (selected) Accent else Ink, fontFamily = BodyFontFamily, fontSize = 14.sp, maxLines = 1)
+        Text(
+            item,
+            color = if (selected) Accent else Ink,
+            fontFamily = BodyFontFamily,
+            fontSize = 14.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
