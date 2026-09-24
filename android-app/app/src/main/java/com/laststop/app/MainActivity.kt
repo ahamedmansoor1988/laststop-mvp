@@ -32,8 +32,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.foundation.border
@@ -1462,21 +1460,33 @@ private fun JourneyScreen(
         Spacer(Modifier.height(22.dp))
         SectionLabel("Saved location")
         Spacer(Modifier.height(12.dp))
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(9.dp),
-            verticalArrangement = Arrangement.spacedBy(9.dp)
-        ) {
-            savedPlaces.forEach { place ->
-                val selected = pickedDestination?.name == place.destination.name
-                PlaceChip(
-                    label = place.label,
-                    iconRes = if (place.label.equals("Home", true)) R.drawable.ic_home else R.drawable.ic_building,
-                    selected = selected,
-                    onClick = { onPickDestination(place.destination) }
-                )
+        val savedEntries: List<SavedPlace?> = savedPlaces + listOf(null)
+        savedEntries.chunked(2).forEach { row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(9.dp)
+            ) {
+                row.forEach { place ->
+                    if (place == null) {
+                        AddPlaceChip(
+                            enabled = placesAvailable,
+                            onClick = onOpenSavedPlacePicker,
+                            modifier = Modifier.weight(1f)
+                        )
+                    } else {
+                        val selected = pickedDestination?.name == place.destination.name
+                        PlaceChip(
+                            label = place.label,
+                            iconRes = if (place.label.equals("Home", true)) R.drawable.ic_home else R.drawable.ic_building,
+                            selected = selected,
+                            onClick = { onPickDestination(place.destination) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                if (row.size == 1) Spacer(Modifier.weight(1f))
             }
-            AddPlaceChip(enabled = placesAvailable, onClick = onOpenSavedPlacePicker)
+            Spacer(Modifier.height(9.dp))
         }
 
         val recents = recentDestinations.filter { recent ->
@@ -1499,19 +1509,23 @@ private fun JourneyScreen(
                 )
             }
             Spacer(Modifier.height(12.dp))
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(9.dp),
-                verticalArrangement = Arrangement.spacedBy(9.dp)
-            ) {
-                recents.take(6).forEach { recent ->
-                    PlaceChip(
-                        label = recent.name,
-                        iconRes = R.drawable.ic_location_add,
-                        selected = pickedDestination?.name == recent.name,
-                        onClick = { onPickDestination(recent) }
-                    )
+            recents.take(6).chunked(2).forEach { row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(9.dp)
+                ) {
+                    row.forEach { recent ->
+                        PlaceChip(
+                            label = recent.name,
+                            iconRes = R.drawable.ic_location_add,
+                            selected = pickedDestination?.name == recent.name,
+                            onClick = { onPickDestination(recent) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    if (row.size == 1) Spacer(Modifier.weight(1f))
                 }
+                Spacer(Modifier.height(9.dp))
             }
         }
 
@@ -1678,9 +1692,15 @@ private fun SegmentedTabs(useDestination: Boolean, onSelect: (Boolean) -> Unit) 
 }
 
 @Composable
-private fun PlaceChip(label: String, iconRes: Int, selected: Boolean, onClick: () -> Unit) {
+private fun PlaceChip(
+    label: String,
+    iconRes: Int,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .height(42.dp)
             .clip(RoundedCornerShape(14.dp))
             .background(if (selected) Ink else QuikLook.Surface)
@@ -1690,14 +1710,23 @@ private fun PlaceChip(label: String, iconRes: Int, selected: Boolean, onClick: (
     ) {
         Icon(painterResource(iconRes), null, tint = if (selected) Accent else Ink, modifier = Modifier.size(17.dp))
         Spacer(Modifier.width(8.dp))
-        Text(label, color = if (selected) Accent else Ink, fontFamily = BodyFontFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text(
+            label,
+            color = if (selected) Accent else Ink,
+            fontFamily = BodyFontFamily,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 
 @Composable
-private fun AddPlaceChip(enabled: Boolean, onClick: () -> Unit) {
+private fun AddPlaceChip(enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .height(42.dp)
             .clip(RoundedCornerShape(14.dp))
             .background(Card)
@@ -1748,7 +1777,6 @@ private fun PresetChip(minutes: Int, selected: Boolean, onClick: () -> Unit, mod
  * inside it, then equal-width two-column item chips. Keeping every chip on the same grid makes
  * user-added and translated long names align predictably instead of shifting later rows.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CarrySelection(
     catalog: List<String>,
