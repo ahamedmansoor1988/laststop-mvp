@@ -1,4 +1,4 @@
-package com.laststop.app
+package com.quiklook.app
 
 import android.Manifest
 import android.app.Notification
@@ -205,10 +205,10 @@ class PassiveDetectionService : Service() {
             ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
     companion object {
-        const val ACTION_START = "com.laststop.app.action.START_WATCHING"
-        const val ACTION_STOP = "com.laststop.app.action.STOP_WATCHING"
-        const val ACTION_OPEN_TRAVEL_SETUP = "com.laststop.app.action.OPEN_TRAVEL_SETUP"
-        const val ACTION_TEST_ALERT = "com.laststop.app.action.TEST_TRAVEL_ALERT"
+        const val ACTION_START = "com.quiklook.app.action.START_WATCHING"
+        const val ACTION_STOP = "com.quiklook.app.action.STOP_WATCHING"
+        const val ACTION_OPEN_TRAVEL_SETUP = "com.quiklook.app.action.OPEN_TRAVEL_SETUP"
+        const val ACTION_TEST_ALERT = "com.quiklook.app.action.TEST_TRAVEL_ALERT"
         private const val WATCH_CHANNEL_ID = "passive_watch"
         private const val PROMPT_CHANNEL_ID = "travel_prompts"
         private const val NOTIFICATION_ID = 2001

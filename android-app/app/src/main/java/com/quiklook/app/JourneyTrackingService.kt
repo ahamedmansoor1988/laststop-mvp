@@ -1,4 +1,4 @@
-package com.laststop.app
+package com.quiklook.app
 
 import android.Manifest
 import android.app.Notification
@@ -579,11 +579,11 @@ class JourneyTrackingService : Service() {
             ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
     companion object {
-        const val ACTION_START = "com.laststop.app.action.START_JOURNEY"
-        const val ACTION_STOP = "com.laststop.app.action.STOP_JOURNEY"
-        const val ACTION_OPEN_DESTINATION = "com.laststop.app.action.OPEN_DESTINATION"
-        const val ACTION_TEST_ALERT = "com.laststop.app.action.TEST_MOVEMENT_ALERT"
-        const val ACTION_DISMISS_ALERT = "com.laststop.app.action.DISMISS_ALERT"
+        const val ACTION_START = "com.quiklook.app.action.START_JOURNEY"
+        const val ACTION_STOP = "com.quiklook.app.action.STOP_JOURNEY"
+        const val ACTION_OPEN_DESTINATION = "com.quiklook.app.action.OPEN_DESTINATION"
+        const val ACTION_TEST_ALERT = "com.quiklook.app.action.TEST_MOVEMENT_ALERT"
+        const val ACTION_DISMISS_ALERT = "com.quiklook.app.action.DISMISS_ALERT"
         const val EXTRA_MODE = "journey_mode"
         const val EXTRA_NAME = "destination_name"
         const val EXTRA_LATITUDE = "destination_latitude"

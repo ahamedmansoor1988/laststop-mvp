@@ -39,11 +39,11 @@ val releaseSigningProps: Map<String, String> = run {
 }
 
 android {
-    namespace = "com.laststop.app"
+    namespace = "com.quiklook.app"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.laststop.app"
+        applicationId = "com.quiklook.app"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

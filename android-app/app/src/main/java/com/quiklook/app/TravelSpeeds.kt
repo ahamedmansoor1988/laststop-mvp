@@ -1,4 +1,4 @@
-package com.laststop.app
+package com.quiklook.app
 
 object TravelSpeeds {
     // Realistic average speeds including stops/turns/traffic — not idealized cruising speed —

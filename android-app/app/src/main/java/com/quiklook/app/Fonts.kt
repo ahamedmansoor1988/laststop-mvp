@@ -1,4 +1,4 @@
-package com.laststop.app
+package com.quiklook.app
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

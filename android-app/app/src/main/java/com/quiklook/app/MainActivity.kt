@@ -1,4 +1,4 @@
-package com.laststop.app
+package com.quiklook.app
 
 import android.Manifest
 import android.content.Context

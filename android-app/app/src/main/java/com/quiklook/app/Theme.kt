@@ -1,4 +1,4 @@
-package com.laststop.app
+package com.quiklook.app
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.BasicTextField

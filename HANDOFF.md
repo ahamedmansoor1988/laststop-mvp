@@ -2,26 +2,22 @@
 
 ## Handoff status — native Android (August 20, 2026, late update)
 
-The native Android app is the active implementation. Product was rebranded from
-"LastStop" to **exitchck** during this session — app label and all user-facing
-copy/notifications now say "exitchck". The Android `applicationId`/package
-(`com.laststop.app`) and internal file/class names were deliberately **not**
-renamed — that's a separate, larger decision the user hasn't made yet. The
-older PWA notes are kept later in this document only for historical/backend
-context.
+The native Android app is the active implementation. The product is branded
+**QuikLook**. Its permanent Play Store application ID and Kotlin namespace are
+`com.quiklook.app`; the older PWA notes are retained only for historical context.
 
 ### Repository and important paths
 
 ```text
 Repository: /Users/mansoor/Documents/Meeting App/laststop-mvp
 Android app: /Users/mansoor/Documents/Meeting App/laststop-mvp/android-app
-Main UI: android-app/app/src/main/java/com/laststop/app/MainActivity.kt
-Onboarding flow: android-app/app/src/main/java/com/laststop/app/Onboarding.kt
-Google Sign-In: android-app/app/src/main/java/com/laststop/app/GoogleAuth.kt
-Passive watcher: android-app/app/src/main/java/com/laststop/app/PassiveDetectionService.kt
-Active tracking: android-app/app/src/main/java/com/laststop/app/JourneyTrackingService.kt
-Boot/reinstall survival: android-app/app/src/main/java/com/laststop/app/BootReceiver.kt
-Travel-mode speed table: android-app/app/src/main/java/com/laststop/app/TravelSpeeds.kt
+Main UI: android-app/app/src/main/java/com/quiklook/app/MainActivity.kt
+Onboarding flow: android-app/app/src/main/java/com/quiklook/app/Onboarding.kt
+Google Sign-In: android-app/app/src/main/java/com/quiklook/app/GoogleAuth.kt
+Passive watcher: android-app/app/src/main/java/com/quiklook/app/PassiveDetectionService.kt
+Active tracking: android-app/app/src/main/java/com/quiklook/app/JourneyTrackingService.kt
+Boot/reinstall survival: android-app/app/src/main/java/com/quiklook/app/BootReceiver.kt
+Travel-mode speed table: android-app/app/src/main/java/com/quiklook/app/TravelSpeeds.kt
 Manifest: android-app/app/src/main/AndroidManifest.xml
 Latest packaged APK: /Users/mansoor/Documents/Meeting App/laststop-mvp/LastStop-MVP.apk
 Gradle APK output: android-app/app/build/outputs/apk/debug/app-debug.apk
@@ -39,9 +35,9 @@ ADB: /opt/homebrew/share/android-commandlinetools/platform-tools/adb
 Gradle wrapper (./gradlew) now works directly — the earlier /tmp fallback
 gradle distribution is no longer needed, wrapper download succeeded this
 session.
-compileSdk/targetSdk: 35
+compileSdk/targetSdk: 36
 minSdk: 26
-applicationId: com.laststop.app
+applicationId: com.quiklook.app
 ```
 
 Build:
@@ -59,7 +55,7 @@ Install and launch:
 /opt/homebrew/share/android-commandlinetools/platform-tools/adb install -r \
   app/build/outputs/apk/debug/app-debug.apk
 /opt/homebrew/share/android-commandlinetools/platform-tools/adb shell monkey \
-  -p com.laststop.app -c android.intent.category.LAUNCHER 1
+  -p com.quiklook.app -c android.intent.category.LAUNCHER 1
 ```
 
 Test phone: Samsung SM-M066B, ADB serial `R9ZY90RYY5B`. Connectivity via USB
@@ -200,7 +196,7 @@ Requires, in the same Google Cloud project:
 
 1. OAuth consent screen configured (External, app name "exitchck", the
    user's own account added as a test user so sign-in works pre-verification).
-2. An **Android** OAuth client (package `com.laststop.app` + the same debug
+2. An **Android** OAuth client (package `com.quiklook.app` + the same debug
    SHA-1 above) — proves the request comes from the real app.
 3. A **Web application** OAuth client — its Client ID is the one that
    actually goes in `local.properties` as `GOOGLE_WEB_CLIENT_ID`, used as
@@ -266,9 +262,9 @@ enum is now just `{ Idle, Journey }`.
   passive watcher silently dying.
 - Boot/reinstall survival via `BootReceiver` (see above).
 - Onboarding flow + Google Sign-In (see above).
-- Debug-only test triggers: `com.laststop.app.action.TEST_MOVEMENT_ALERT`
+- Debug-only test triggers: `com.quiklook.app.action.TEST_MOVEMENT_ALERT`
   (JourneyTrackingService "reached" alert) and
-  `com.laststop.app.action.TEST_TRAVEL_ALERT` (PassiveDetectionService
+  `com.quiklook.app.action.TEST_TRAVEL_ALERT` (PassiveDetectionService
   "looks like you're traveling" alert).
 
 ### Settings screen (added this session)
