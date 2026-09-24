@@ -62,14 +62,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * Onboarding runs on the black ground: four numbered steps behind a splash, each with a back
+ * Onboarding runs on the black ground: three numbered steps behind a splash, each with a back
  * arrow and a progress rail, per the supplied designs. The app itself switches to the cream
  * ground once setup finishes.
  */
 private enum class OnboardingStep(val index: Int) {
-    Intro(0), Account(1), Permission(2), Profile(3);
+    Intro(0), Permission(1), Profile(2);
 
-    companion object { const val COUNT = 4 }
+    companion object { const val COUNT = 3 }
 }
 
 @Composable
@@ -145,8 +145,6 @@ private fun Modifier.badgeGradient(): Modifier = drawBehind {
 @Composable
 internal fun OnboardingFlow(
     signedInUser: SignedInUser?,
-    onSignIn: () -> Unit,
-    signInError: String?,
     homeDestination: Destination?,
     onOpenDestinationPicker: () -> Unit,
     placesAvailable: Boolean,
@@ -163,8 +161,7 @@ internal fun OnboardingFlow(
     fun back() {
         step = when (step) {
             OnboardingStep.Intro -> OnboardingStep.Intro
-            OnboardingStep.Account -> OnboardingStep.Intro
-            OnboardingStep.Permission -> OnboardingStep.Account
+            OnboardingStep.Permission -> OnboardingStep.Intro
             OnboardingStep.Profile -> OnboardingStep.Permission
         }
     }
@@ -181,12 +178,6 @@ internal fun OnboardingFlow(
                 Spacer(Modifier.height(30.dp))
                 when (step) {
                     OnboardingStep.Intro -> IntroStep(
-                        onNext = { step = OnboardingStep.Account }
-                    )
-                    OnboardingStep.Account -> AccountStep(
-                        signedInUser = signedInUser,
-                        onSignIn = onSignIn,
-                        signInError = signInError,
                         onNext = { step = OnboardingStep.Permission }
                     )
                     OnboardingStep.Permission -> PermissionStep(
@@ -206,7 +197,7 @@ internal fun OnboardingFlow(
     }
 }
 
-/** Back arrow plus the four-segment progress rail shared by every onboarding screen. */
+/** Back arrow plus the three-segment progress rail shared by every onboarding screen. */
 @Composable
 private fun StepHeader(step: OnboardingStep, onBack: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -328,39 +319,6 @@ private fun IntroStep(onNext: () -> Unit) {
     FeatureRow(R.drawable.ic_password_check, "Check with confidence ", "never leave your essentials behind.")
     Spacer(Modifier.height(48.dp))
     LimeButton("Continue", onNext, Modifier.fillMaxWidth())
-}
-
-@Composable
-private fun AccountStep(
-    signedInUser: SignedInUser?,
-    onSignIn: () -> Unit,
-    signInError: String?,
-    onNext: () -> Unit
-) {
-    TwoToneTitle("You're one step\n", "closer")
-    Spacer(Modifier.height(16.dp))
-    DarkBody("Create your account to keep your reminders, places, and preferences in sync.")
-    Spacer(Modifier.height(34.dp))
-    AppDemoAnimation()
-    if (signedInUser != null) {
-        Spacer(Modifier.height(18.dp))
-        Text(
-            "Signed in as ${signedInUser.email}",
-            color = QuikLook.MutedOnDark,
-            fontFamily = BodyFontFamily,
-            fontSize = 13.sp
-        )
-    } else if (signInError != null) {
-        Spacer(Modifier.height(16.dp))
-        Text(signInError, color = QuikLook.Danger, fontFamily = BodyFontFamily, fontSize = 13.sp)
-    }
-    Spacer(Modifier.height(30.dp))
-    LimeButton(
-        label = if (signedInUser != null) "Continue" else "Continue with Google",
-        onClick = { if (signedInUser != null) onNext() else onSignIn() },
-        modifier = Modifier.fillMaxWidth()
-    )
-    if (signedInUser == null) QuietButton("Already have an account?  Sign in", onNext)
 }
 
 @Composable

@@ -208,17 +208,16 @@ locally in SharedPreferences), not real authentication/authorization. This
 was an explicit scope choice (user picked "full Google Sign-In" over a
 lightweight name-only alternative when asked).
 
-Sign-in has a "Skip for now" escape hatch in onboarding so an unconfigured
-or failed sign-in never hard-blocks getting into the app.
+Sign-in is intentionally absent from onboarding. It is available only in
+Settings, so an unconfigured or failed sign-in never blocks initial setup.
 
 ### Onboarding flow (new — `Onboarding.kt`)
 
-Shown once, gated by `onboarding_complete` in SharedPreferences (defaults to
-`false`, so it will trigger on next launch on the test phone too since this
-key never existed before). Steps: **Welcome → How It Works (3-step
-explainer) → Google Sign-In (skippable) → Set Home location → Location
-permission ("while using the app," not "always" — deliberate; the app's
-foreground-service design doesn't need `ACCESS_BACKGROUND_LOCATION`)**.
+Shown once, gated by `onboarding_complete` in SharedPreferences. The current
+three-step flow is **Welcome/how it works → Location permission → Profile**.
+Google Sign-In is available only from Settings. Location permission is
+"while using the app," not "always" — deliberate; the foreground-service
+design doesn't request `ACCESS_BACKGROUND_LOCATION`.
 Setting Home during onboarding reuses the existing Saved Places mechanism
 (saves under label "Home"), including its privacy disclosure copy that
 location isn't collected by any server. `finishOnboarding()` explicitly

@@ -321,8 +321,6 @@ class MainActivity : ComponentActivity() {
             } else if (!onboardingComplete) {
                 OnboardingFlow(
                     signedInUser = signedInUser,
-                    onSignIn = ::signInWithGoogle,
-                    signInError = signInError,
                     homeDestination = savedPlaces.find { it.label.equals("Home", ignoreCase = true) }?.destination,
                     onOpenDestinationPicker = ::openHomeLocationPicker,
                     placesAvailable = placesAvailable,

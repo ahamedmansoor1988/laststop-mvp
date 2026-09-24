@@ -87,16 +87,15 @@ Do not introduce new visual colors without updating this book.
 
 ## Screen flow
 
-1. Welcome
-2. How it works
-3. Keep places synced
-4. Location permission
-5. Profile
-6. Journey dashboard / travel prompt
-7. Destination or timer setup
-8. Active journey
-9. Exit checklist
+1. Welcome / how it works
+2. Location permission
+3. Profile
+4. Journey dashboard / travel prompt
+5. Destination or timer setup
+6. Active journey
+7. Exit checklist
 
+Google Sign-In is optional and lives in Settings; it must never interrupt onboarding.
 Settings and notification actions follow the supplied journey board.
 
 ## Release checklist
